@@ -133,10 +133,12 @@ class PhpWordDriver extends AbstractDriver
     {
         $settings = $context->settings;
         $margins = $settings->getMargins();
+        [$width, $height] = $settings->getPaper()->dimensionsFor($settings->getOrientation());
 
         return [
-            'paperSize'    => $settings->getPaper()->value,
             'orientation'  => $settings->isLandscape() ? 'landscape' : 'portrait',
+            'pageSizeW'    => Units::mmToTwip($width),
+            'pageSizeH'    => Units::mmToTwip($height),
             'marginTop'    => Units::mmToTwip($margins->top),
             'marginRight'  => Units::mmToTwip($margins->right),
             'marginBottom' => Units::mmToTwip($margins->bottom),

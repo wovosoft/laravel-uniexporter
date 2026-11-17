@@ -21,7 +21,7 @@ public function settings(Settings $settings): Settings
 
 | Method | Values |
 |--------|--------|
-| `paper(Paper\|string)` | `A3`, `A4` (default), `A5`, `Letter`, `Legal` |
+| `paper(Paper\|string)` | `A3`, `A4` (default), `A5`, `B4`, `Letter`, `Legal` |
 | `portrait()` / `landscape()` / `orientation(Orientation\|string)` | portrait by default |
 
 ## Margins

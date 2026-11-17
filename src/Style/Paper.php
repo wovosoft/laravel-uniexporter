@@ -3,13 +3,15 @@
 namespace Wovosoft\LaravelUniexporter\Style;
 
 /**
- * Paper sizes every default driver supports (mPDF, PhpWord and OpenSpout all know these).
+ * Paper sizes every default driver supports. PhpWord has no B4, so the Word driver sets its size
+ * from dimensions().
  */
 enum Paper: string
 {
     case A3 = 'A3';
     case A4 = 'A4';
     case A5 = 'A5';
+    case B4 = 'B4';
     case Letter = 'Letter';
     case Legal = 'Legal';
 
@@ -24,6 +26,7 @@ enum Paper: string
             self::A3     => [297.0, 420.0],
             self::A4     => [210.0, 297.0],
             self::A5     => [148.0, 210.0],
+            self::B4     => [250.0, 353.0],
             self::Letter => [215.9, 279.4],
             self::Legal  => [215.9, 355.6],
         };

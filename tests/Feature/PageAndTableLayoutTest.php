@@ -9,6 +9,7 @@ use Wovosoft\LaravelUniexporter\Components\Table;
 use Wovosoft\LaravelUniexporter\Components\Text;
 use Wovosoft\LaravelUniexporter\Document;
 use Wovosoft\LaravelUniexporter\Settings;
+use Wovosoft\LaravelUniexporter\Style\Paper;
 use Wovosoft\LaravelUniexporter\Style\Style;
 use Wovosoft\LaravelUniexporter\Tests\Fixtures\SampleData;
 use Wovosoft\LaravelUniexporter\Tests\TestCase;
@@ -103,6 +104,19 @@ class PageAndTableLayoutTest extends TestCase
         }
         $this->assertCount(2, $headers[1]);
         $this->assertMatchesRegularExpression('/\.c\d+\{[^}]*text-align: right[^}]*\}/', $html, 'Body cells keep the column alignment.');
+    }
+
+    public function test_b4_paper_reaches_every_format(): void
+    {
+        $document = Document::make()
+            ->configure(fn (Settings $settings) => $settings->paper(Paper::B4)->landscape())
+            ->components([Text::make('B4')]);
+
+        $pdf = (string) file_get_contents($this->export($document, [], 'pdf')->path());
+        $this->assertMatchesRegularExpression('#/MediaBox \[0 0 1000\.6\d+ 708\.6\d+\]#', $pdf);
+        $this->assertStringContainsString('paperSize="12"', $this->zipEntry($this->export($document, [], 'xlsx')->path(), 'xl/worksheets/sheet1.xml'));
+        $this->assertMatchesRegularExpression('/<w:pgSz w:orient="landscape" w:w="2001\d" w:h="1417\d"/', $this->zipEntry($this->export($document, [], 'docx')->path(), 'word/document.xml'));
+        $this->assertStringContainsString('size: B4 landscape', (string) file_get_contents($this->export($document, [], 'html')->path()));
     }
 
     public function test_spreadsheet_columns_print_setup_and_wrapping(): void

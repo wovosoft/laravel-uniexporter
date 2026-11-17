@@ -692,6 +692,7 @@ class OpenSpoutDriver extends AbstractDriver
             Paper::A3     => PaperSize::A3,
             Paper::A4     => PaperSize::A4,
             Paper::A5     => PaperSize::A5,
+            Paper::B4     => PaperSize::B4,
             Paper::Letter => PaperSize::Letter,
             Paper::Legal  => PaperSize::Legal,
         };
