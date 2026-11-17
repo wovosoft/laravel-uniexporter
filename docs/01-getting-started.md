@@ -84,6 +84,7 @@ The key is the font family in lowercase without spaces: `->font('SolaimanLipi')`
 The package ships a skill and a guideline for AI coding agents (Claude Code, Copilot, Codex, Junie, Cursor...) in `resources/boost/`:
 
 - `resources/boost/skills/laravel-uniexporter/SKILL.md`: how to build, serve, migrate and test exports with this package.
+- `resources/boost/skills/laravel-uniexporter/references/api.md`: every public method with its signature, generated from the source. Regenerate it after changing the public API: `php scripts/skill-reference.php`.
 - `resources/boost/guidelines/core.blade.php`: a short rule added to the agents' guidelines, pointing them to the skill.
 
 **With [Laravel Boost](https://github.com/laravel/boost)**, nothing needs publishing: Boost discovers both in every direct dependency. Run `php artisan boost:install` (or `boost:update`, which asks about newly found packages) and select `wovosoft/laravel-uniexporter`, or add it to `packages` in `boost.json` and run `php artisan boost:update`. Boost writes the skill for every configured agent and keeps it in sync on each update.
