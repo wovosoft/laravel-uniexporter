@@ -1,0 +1,51 @@
+{
+    "name": "wovosoft/laravel-uniexporter",
+    "description": "Describe a document once as a schema and export it to PDF, DOCX, XLSX or any format with a pluggable driver",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Narayan Adhikary",
+            "email": "wovosoft@gmail.com",
+            "homepage": "https://github.com/wovosoft"
+        }
+    ],
+    "homepage": "https://github.com/wovosoft/laravel-uniexporter",
+    "keywords": [
+        "Laravel",
+        "export",
+        "pdf",
+        "docx",
+        "xlsx"
+    ],
+    "require": {
+        "php": ">=8.4",
+        "illuminate/support": "^12.0|^13.0",
+        "illuminate/filesystem": "^12.0|^13.0",
+        "symfony/http-foundation": "^7.0|^8.0"
+    },
+    "suggest": {
+        "mpdf/mpdf": "Required by the default PDF driver (^8.2)",
+        "phpoffice/phpword": "Required by the default DOCX driver (^1.2)",
+        "openspout/openspout": "Required by the default XLSX driver (^5.0)"
+    },
+    "autoload": {
+        "psr-4": {
+            "Wovosoft\\LaravelUniexporter\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Wovosoft\\LaravelUniexporter\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Wovosoft\\LaravelUniexporter\\UniexporterServiceProvider"
+            ],
+            "aliases": {
+                "Uniexporter": "Wovosoft\\LaravelUniexporter\\Facades\\Uniexporter"
+            }
+        }
+    }
+}
