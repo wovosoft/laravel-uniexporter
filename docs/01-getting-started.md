@@ -156,6 +156,42 @@ A document without data can export directly: `$document->exportToPdf()`.
 
 Download names may contain any Unicode characters; an ASCII fallback is sent for old clients.
 
+### One controller for every format
+
+Instead of a controller per format, the `ExportsByFormat` trait serves every format of a document from one controller and one route. Build the document once in `document($request, $format)`, route `{format}` to the controller with `whereIn()`, and call `exportAs()`:
+
+```php
+use Wovosoft\LaravelUniexporter\Concerns\ExportsByFormat;
+use Wovosoft\LaravelUniexporter\PendingExport;
+
+class EmployeesExport
+{
+    use ExportsByFormat;
+
+    public const array FORMATS = ['pdf', 'excel', 'docx'];
+
+    public function __invoke(EmployeesRequest $request, string $format): BinaryFileResponse
+    {
+        return $this->exportAs($request, $format);
+    }
+
+    protected function document(EmployeesRequest $request, string $format): PendingExport
+    {
+        return EmployeesDocument::make()->data(['employees' => Employee::query()->filter($request)->lazy()]);
+    }
+}
+
+Route::get('employees/export/{format}', EmployeesExport::class)
+    ->whereIn('format', EmployeesExport::FORMATS)      // other formats are a 404
+    ->name('employees.export');
+
+route('employees.export', ['format' => 'pdf', 'office_id' => 5]);
+```
+
+- `exportAs()` calls the public `pdf()`, `html()`, `excel()` (also `xlsx`), `docx()` or `csv()` method, which export the document: PDF and HTML open in the browser (`inline()`), the others download.
+- `document()` is not declared abstract, so it can take your form request. `$format` is the requested format, for exports whose data differs per format (for example a paged PDF and a full spreadsheet).
+- An unknown format throws `UnknownFormatException`; the route's `whereIn()` keeps such requests from reaching the controller.
+
 ### Octane and queues
 
 Drivers always write to a file, never to PHP's output, and the response streams that file. This works the same under PHP-FPM and Octane (FrankenPHP, Swoole, RoadRunner). For very large exports, render in a queued job and `store()` the file:

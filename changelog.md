@@ -10,6 +10,7 @@ All notable changes to `laravel-uniexporter` are documented in this file.
 - `Document::withData()` and `with()` attach data, so a document exports without `data()`; `data()` merges over it.
 - `Table::column()` and `Table::headerRow()`, `Columns::block()`, `Text::run()`, and `headerContent()`/`footerContent()` closures.
 - `Uniexporter::document()`.
+- `Concerns\ExportsByFormat`: one controller serves every format of a document from an `export/{format}` route.
 
 ### Changed
 - `Document` has public `table()`, `text()`, `heading()`... methods; subclasses can no longer declare methods with these names.
