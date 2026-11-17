@@ -23,12 +23,18 @@ class ExportsByFormatTest extends TestCase
     {
         parent::setUp();
 
-        Container::getInstance()->instance(UniexporterManager::class, $this->manager());
+        // The trait exports through UniexporterManager::resolve(): the container's manager in Laravel,
+        // a default one in a standalone install (illuminate/container is not a dependency).
+        if (class_exists(Container::class)) {
+            Container::getInstance()->instance(UniexporterManager::class, $this->manager());
+        }
     }
 
     protected function tearDown(): void
     {
-        Container::setInstance(null);
+        if (class_exists(Container::class)) {
+            Container::setInstance(null);
+        }
 
         parent::tearDown();
     }
