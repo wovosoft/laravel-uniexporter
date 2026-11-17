@@ -14,7 +14,7 @@ class SmokeTest extends TestCase
      */
     public static function formats(): array
     {
-        return ['pdf' => ['pdf'], 'docx' => ['docx'], 'xlsx' => ['xlsx']];
+        return ['pdf' => ['pdf'], 'docx' => ['docx'], 'xlsx' => ['xlsx'], 'html' => ['html']];
     }
 
     #[DataProvider('formats')]

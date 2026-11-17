@@ -4,6 +4,7 @@ namespace Wovosoft\LaravelUniexporter\Tests;
 
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use Wovosoft\LaravelUniexporter\Document;
+use Wovosoft\LaravelUniexporter\Drivers\Html\HtmlDriver;
 use Wovosoft\LaravelUniexporter\Drivers\Mpdf\MpdfDriver;
 use Wovosoft\LaravelUniexporter\Drivers\OpenSpout\OpenSpoutDriver;
 use Wovosoft\LaravelUniexporter\Drivers\PhpWord\PhpWordDriver;
@@ -33,6 +34,7 @@ abstract class TestCase extends BaseTestCase
             $export->delete();
         }
 
+        HtmlDriver::flushCustomRenderers();
         MpdfDriver::flushCustomRenderers();
         PhpWordDriver::flushCustomRenderers();
         OpenSpoutDriver::flushCustomRenderers();

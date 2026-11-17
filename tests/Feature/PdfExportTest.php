@@ -31,6 +31,7 @@ class PdfExportTest extends TestCase
         $this->assertStringContainsString('html_uxHeader', $html);
         $this->assertStringContainsString('html_uxFooter', $html);
         $this->assertStringContainsString('<thead>', $html);
+        $this->assertStringContainsString('<td style=', $html, 'mPDF gets inline cell styles.');
         $this->assertStringContainsString('colspan="3"', $html);
         $this->assertStringContainsString('Grand Total', $html);
         $this->assertStringContainsString('115,500.75', $html);

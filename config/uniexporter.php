@@ -1,5 +1,6 @@
 <?php
 
+use Wovosoft\LaravelUniexporter\Drivers\Html\HtmlDriver;
 use Wovosoft\LaravelUniexporter\Drivers\Mpdf\MpdfDriver;
 use Wovosoft\LaravelUniexporter\Drivers\OpenSpout\OpenSpoutDriver;
 use Wovosoft\LaravelUniexporter\Drivers\PhpWord\PhpWordDriver;
@@ -21,6 +22,7 @@ return [
         'pdf'  => MpdfDriver::class,
         'docx' => PhpWordDriver::class,
         'xlsx' => OpenSpoutDriver::class,
+        'html' => HtmlDriver::class,
     ],
 
     /*
@@ -67,6 +69,7 @@ return [
             'font_data' => [],
         ],
         'docx' => [],
+        'html' => [],
         'xlsx' => [
             // Named arguments for OpenSpout\Writer\XLSX\Options (e.g. 'SHOULD_USE_INLINE_STRINGS' => false).
             'options' => [],

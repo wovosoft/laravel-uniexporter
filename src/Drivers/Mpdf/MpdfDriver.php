@@ -7,33 +7,16 @@ use Mpdf\Config\FontVariables;
 use Mpdf\HTMLParserMode;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
-use Wovosoft\LaravelUniexporter\Components\Columns;
 use Wovosoft\LaravelUniexporter\Components\Component;
-use Wovosoft\LaravelUniexporter\Components\Divider;
-use Wovosoft\LaravelUniexporter\Components\Group;
-use Wovosoft\LaravelUniexporter\Components\Heading;
-use Wovosoft\LaravelUniexporter\Components\Image;
-use Wovosoft\LaravelUniexporter\Components\KeyValue;
-use Wovosoft\LaravelUniexporter\Components\ListBlock;
 use Wovosoft\LaravelUniexporter\Components\Native;
-use Wovosoft\LaravelUniexporter\Components\PageBreak;
-use Wovosoft\LaravelUniexporter\Components\Run;
-use Wovosoft\LaravelUniexporter\Components\Sheet;
-use Wovosoft\LaravelUniexporter\Components\Spacer;
-use Wovosoft\LaravelUniexporter\Components\Table;
-use Wovosoft\LaravelUniexporter\Components\Text;
-use Wovosoft\LaravelUniexporter\Drivers\AbstractDriver;
+use Wovosoft\LaravelUniexporter\Drivers\Html\HtmlDriver;
 use Wovosoft\LaravelUniexporter\Drivers\RenderContext;
 use Wovosoft\LaravelUniexporter\HeaderFooter;
-use Wovosoft\LaravelUniexporter\Style\Align;
-use Wovosoft\LaravelUniexporter\Style\Border;
 use Wovosoft\LaravelUniexporter\Style\Style;
-use Wovosoft\LaravelUniexporter\Style\VerticalAlign;
-use Wovosoft\LaravelUniexporter\Support\TableRows;
 
 /**
- * PDF through mPDF. The schema becomes HTML/CSS that is written to mPDF one top-level
- * component at a time, and the PDF is saved with Destination::FILE (never sent to output).
+ * PDF through mPDF. The schema becomes the same HTML/CSS as the HTML driver, written to mPDF one
+ * top-level component at a time, and the PDF is saved with Destination::FILE (never sent to output).
  *
  * Native callbacks: a component's ->native('pdf', fn (string $html, Mpdf $mpdf, RenderContext $context): ?string)
  * may return replacement HTML. Native components get (Mpdf $mpdf, RenderContext $context).
@@ -42,21 +25,9 @@ use Wovosoft\LaravelUniexporter\Support\TableRows;
  * Driver options: 'config' (mPDF constructor config), 'font_dir', 'font_data', and
  * 'html_listener' (a callable receiving each HTML chunk, for debugging and tests).
  */
-class MpdfDriver extends AbstractDriver
+class MpdfDriver extends HtmlDriver
 {
     private Mpdf $mpdf;
-
-    private string $buffer = '';
-
-    /**
-     * Whether anything was written since the last page break; a sheet only starts a new page when it was.
-     */
-    private bool $pageHasContent = false;
-
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function __construct(private readonly array $options = []) {}
 
     public function extension(): string
     {
@@ -82,7 +53,7 @@ class MpdfDriver extends AbstractDriver
 
         $this->runCallbacks($context->document->getBeforeRender('pdf'), $this->mpdf, $context);
 
-        $this->write($this->pageCss($context), HTMLParserMode::HEADER_CSS);
+        $this->writeHtml($this->pageCss($context), HTMLParserMode::HEADER_CSS);
         $this->defineHeadersAndFooters($context);
 
         foreach ($context->document->schema() as $component) {
@@ -137,202 +108,33 @@ class MpdfDriver extends AbstractDriver
         return array_replace($config, (array) ($this->options['config'] ?? []));
     }
 
-    protected function renderHeading(Heading $heading, RenderContext $context, ?Style $inherited, bool $inline): void
+    protected function pageBreakHtml(): string
     {
-        $style = $context->style($heading, $inherited);
-        $text = $this->escape($context->text($heading->getText()));
-
-        $this->emit($heading, $context, $inline
-            ? '<span style="'.$this->textCss($style).'">'.$text.'</span><br />'
-            : '<h'.$heading->getLevel().' style="'.$this->blockCss($style).'">'.$text.'</h'.$heading->getLevel().'>');
+        return '<pagebreak />';
     }
 
-    protected function renderText(Text $text, RenderContext $context, ?Style $inherited, bool $inline): void
+    /**
+     * mPDF lays out inline styles most reliably, so cells keep them.
+     */
+    protected function cellAttribute(string $css): string
     {
-        $style = $context->style($text, $inherited);
-        $runs = implode('', array_map(fn (Run $run): string => $this->runHtml($run, $context), $text->getRuns()));
-
-        $this->emit($text, $context, $inline
-            ? '<span style="'.$this->textCss($style).'">'.$runs.'</span><br />'
-            : '<p style="'.$this->blockCss($style).'">'.$runs.'</p>');
+        return ' style="'.$css.'"';
     }
 
-    protected function renderTable(Table $table, RenderContext $context, ?Style $inherited, bool $inline): void
+    /**
+     * Lets mPDF shrink a table's font when a column cannot otherwise fit.
+     */
+    protected function tableAttributes(): string
     {
-        $style = $context->style($table, $inherited);
-        $columns = $table->getColumns();
-        $widths = $table->getWidthPercentages();
-        $border = $table->getCellBorder();
-        $padding = $style->padding ?? 1;
-        $headerStyle = $style->merge($table->getHeaderStyle());
-        $rows = new TableRows($table, $context->data);
-
-        $head = '';
-
-        if ($table->shouldShowHeader()) {
-            foreach ($table->getHeaderRows() as $headerRow) {
-                $head .= '<tr>';
-                foreach ($headerRow as $cell) {
-                    $cellStyle = $this->headerCellStyle($cell, $headerStyle, $context);
-                    $head .= '<th colspan="'.$cell->getColspan().'" style="'.$this->cellCss($cellStyle, $border, $padding).'">'
-                        .$this->escape($context->text($cell->getText())).'</th>';
-                }
-                $head .= '</tr>';
-            }
-
-            $head .= '<tr>';
-            foreach ($columns as $position => $column) {
-                $cellStyle = $headerStyle
-                    ->merge(Style::make()->align($column->getInlineStyle()?->align ?? Align::Left))
-                    ->merge($column->getHeaderStyle());
-                $head .= '<th style="width: '.round($widths[$position], 3).'%; '.$this->cellCss($cellStyle, $border, $padding).'">'
-                    .$this->escape($context->text($column->getLabel())).'</th>';
-            }
-            $head .= '</tr>';
-        }
-
-        $body = '';
-        $columnStyles = array_map(fn ($column): Style => $style->merge($column->getInlineStyle())->merge(Style::make()->padding($padding)), $columns);
-
-        foreach ($rows->rows() as $row) {
-            $stripe = $table->getStripeColor() !== null && $row->index % 2 === 1 ? Style::make()->background($table->getStripeColor()) : null;
-            $body .= '<tr>';
-            foreach ($row->texts as $position => $text) {
-                $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->style);
-                $body .= '<td style="'.$this->cellCss($cellStyle, $border, $padding).'">'.$this->escape($text).'</td>';
-            }
-            $body .= '</tr>';
-        }
-
-        if ($rows->count() === 0 && $table->getEmptyText() !== '') {
-            $body .= '<tr><td colspan="'.count($columns).'" style="'.$this->cellCss($style->merge(Style::make()->align(Align::Center)), $border, $padding).'">'
-                .$this->escape($context->text($table->getEmptyText())).'</td></tr>';
-        }
-
-        if ($table->hasTotals()) {
-            $totalStyle = $style->merge($table->getTotalStyle());
-            $labelColumn = $rows->totalLabelColumn();
-            $body .= '<tr>';
-            foreach ($rows->totals() as $position => $total) {
-                $text = match (true) {
-                    $total !== null           => $columns[$position]->getFormat()->toText($total),
-                    $position === $labelColumn => $context->text($table->getTotalLabel()),
-                    default                   => '',
-                };
-                $cellStyle = $totalStyle->merge(Style::make()->align($columns[$position]->getInlineStyle()?->align ?? Align::Left));
-                $body .= '<td style="'.$this->cellCss($cellStyle, $border, $padding).'">'.$this->escape($text).'</td>';
-            }
-            $body .= '</tr>';
-        }
-
-        $headHtml = $head === '' ? '' : ($table->shouldRepeatHeader() ? '<thead>'.$head.'</thead>' : $head);
-        $tableCss = 'width: 100%; border-collapse: collapse; '.$this->spacingCss($style);
-
-        $this->emit($table, $context, '<table autosize="1" style="'.$tableCss.'">'.$headHtml.'<tbody>'.$body.'</tbody></table>');
+        return ' autosize="1"';
     }
 
-    protected function renderKeyValue(KeyValue $keyValue, RenderContext $context, ?Style $inherited, bool $inline): void
+    /**
+     * mPDF reads images from the file system directly.
+     */
+    protected function imageSource(string $path): string
     {
-        $style = $context->style($keyValue, $inherited);
-        $labelStyle = $style->merge($keyValue->getLabelStyle());
-        $pairs = array_chunk($keyValue->getItems(), $keyValue->getColumns(), true);
-        $cellPadding = $style->padding ?? 0.5;
-
-        $html = '<table style="width: 100%; border-collapse: collapse; '.$this->spacingCss($style).'">';
-        foreach ($pairs as $pair) {
-            $html .= '<tr>';
-            foreach ($pair as $label => $value) {
-                $html .= '<td style="'.$this->cellCss($labelStyle, null, $cellPadding).' white-space: nowrap;">'
-                    .$this->escape($context->text($label).$keyValue->getSeparator()).'</td>';
-                $html .= '<td style="'.$this->cellCss($style, null, $cellPadding).'">'.$this->escape($context->text($value)).'</td>';
-            }
-            $html .= '</tr>';
-        }
-
-        $this->emit($keyValue, $context, $html.'</table>');
-    }
-
-    protected function renderListBlock(ListBlock $list, RenderContext $context, ?Style $inherited, bool $inline): void
-    {
-        $style = $context->style($list, $inherited);
-        $this->emit($list, $context, $this->listHtml($this->listItems($list, $context), $list->isOrdered(), $style, $context));
-    }
-
-    protected function renderImage(Image $image, RenderContext $context, ?Style $inherited, bool $inline): void
-    {
-        $path = $context->imagePath($image->getSource());
-
-        if ($path === null) {
-            return;
-        }
-
-        $style = $context->style($image, $inherited);
-        $size = ($image->getWidth() !== null ? 'width: '.$image->getWidth().'mm; ' : '')
-            .($image->getHeight() !== null ? 'height: '.$image->getHeight().'mm; ' : '');
-        $img = '<img src="'.$this->escape($path).'" style="'.$size.'" />';
-
-        $this->emit($image, $context, $inline
-            ? $img.'<br />'
-            : '<div style="text-align: '.($style->align ?? Align::Left)->value.'; '.$this->spacingCss($style).'">'.$img.'</div>');
-    }
-
-    protected function renderColumns(Columns $columns, RenderContext $context, ?Style $inherited, bool $inline): void
-    {
-        $style = $context->style($columns, $inherited);
-        $widths = $columns->getWidthPercentages();
-
-        $html = '<table style="width: 100%; border-collapse: collapse; '.$this->spacingCss($style).'"><tr>';
-        foreach ($columns->getBlocks() as $position => $block) {
-            $blockStyle = $context->style($block, $style);
-            $html .= '<td style="width: '.round($widths[$position], 3).'%; vertical-align: '.$this->verticalAlign($blockStyle->verticalAlign ?? VerticalAlign::Top).'; '
-                .$this->textCss($blockStyle).' text-align: '.($blockStyle->align ?? Align::Left)->value.';">'
-                .$this->capture(fn () => $this->renderChildren($block, $context, $blockStyle, true)).'</td>';
-        }
-
-        $this->emit($columns, $context, $html.'</tr></table>');
-    }
-
-    protected function renderGroup(Group $group, RenderContext $context, ?Style $inherited, bool $inline): void
-    {
-        $style = $context->style($group, $inherited);
-        $children = $this->capture(fn () => $this->renderChildren($group, $context, $style, $inline));
-
-        $this->emit($group, $context, $inline
-            ? $children
-            : '<div style="'.$this->blockCss($style).($group->shouldKeepTogether() ? ' page-break-inside: avoid;' : '').'">'.$children.'</div>');
-    }
-
-    protected function renderSpacer(Spacer $spacer, RenderContext $context, ?Style $inherited, bool $inline): void
-    {
-        $this->emit($spacer, $context, $inline
-            ? '<br />'
-            : '<div style="height: '.$spacer->getHeight().'mm; font-size: 1pt; line-height: 1pt;">&nbsp;</div>');
-    }
-
-    protected function renderDivider(Divider $divider, RenderContext $context, ?Style $inherited, bool $inline): void
-    {
-        $style = $context->style($divider, $inherited);
-        $border = $style->border ?? new Border(0.5, '999999');
-
-        $this->emit($divider, $context, '<hr style="color: #'.$border->color.'; height: '.$border->width.'pt; '.$this->spacingCss($style).'" />');
-    }
-
-    protected function renderPageBreak(PageBreak $break, RenderContext $context, ?Style $inherited, bool $inline): void
-    {
-        if (! $inline) {
-            $this->emit($break, $context, '<pagebreak />');
-            $this->flush();
-            $this->pageHasContent = false;
-        }
-    }
-
-    protected function renderSheet(Sheet $sheet, RenderContext $context, ?Style $inherited, bool $inline): void
-    {
-        if ($this->pageHasContent && ! $inline) {
-            $this->emit($sheet, $context, '<pagebreak />');
-            $this->flush();
-            $this->pageHasContent = false;
-        }
+        return $path;
     }
 
     protected function renderNative(Native $native, RenderContext $context, ?Style $inherited, bool $inline): void
@@ -341,13 +143,6 @@ class MpdfDriver extends AbstractDriver
             $this->flush();
             $renderer($this->mpdf, $context);
             $this->pageHasContent = true;
-        }
-    }
-
-    protected function renderChildren(Component $container, RenderContext $context, Style $style, bool $inline): void
-    {
-        foreach ($container->getChildren() as $child) {
-            $this->renderComponent($child, $context, $style, $inline);
         }
     }
 
@@ -363,27 +158,12 @@ class MpdfDriver extends AbstractDriver
         $this->buffer .= $html;
     }
 
-    protected function capture(callable $render): string
+    protected function write(string $html): void
     {
-        $previous = $this->buffer;
-        $this->buffer = '';
-        $render();
-        $captured = $this->buffer;
-        $this->buffer = $previous;
-
-        return $captured;
+        $this->writeHtml($html, HTMLParserMode::HTML_BODY);
     }
 
-    protected function flush(): void
-    {
-        if ($this->buffer !== '') {
-            $this->write($this->buffer, HTMLParserMode::HTML_BODY);
-            $this->buffer = '';
-            $this->pageHasContent = true;
-        }
-    }
-
-    protected function write(string $html, int $mode): void
+    protected function writeHtml(string $html, int $mode): void
     {
         if (is_callable($listener = $this->options['html_listener'] ?? null)) {
             $listener($html, $mode);
@@ -451,125 +231,10 @@ class MpdfDriver extends AbstractDriver
     }
 
     /**
-     * @param list<string|array{text: string, items?: list<mixed>}> $items
-     */
-    protected function listHtml(array $items, bool $ordered, Style $style, RenderContext $context): string
-    {
-        $tag = $ordered ? 'ol' : 'ul';
-        $html = '<'.$tag.' style="'.$this->blockCss($style).'">';
-
-        foreach ($items as $item) {
-            $text = is_array($item) ? ($item['text'] ?? '') : $item;
-            $html .= '<li>'.$this->escape($context->text((string) $text));
-
-            if (is_array($item) && ! empty($item['items'])) {
-                $html .= $this->listHtml($item['items'], $ordered, $style->inheritable(), $context);
-            }
-
-            $html .= '</li>';
-        }
-
-        return $html.'</'.$tag.'>';
-    }
-
-    protected function runHtml(Run $run, RenderContext $context): string
-    {
-        $text = $this->escape($context->text($run->getText()));
-        $css = $this->textCss($this->runStyle($run, $context));
-        $html = $css === '' ? $text : '<span style="'.$css.'">'.$text.'</span>';
-
-        if ($run->getUrl() !== null) {
-            $html = '<a href="'.$this->escape($context->text($run->getUrl())).'">'.$html.'</a>';
-        }
-
-        return $html;
-    }
-
-    protected function textCss(Style $style): string
-    {
-        $css = [];
-
-        if ($style->fontFamily !== null) {
-            $css[] = 'font-family: '.$this->fontKey($style->fontFamily);
-        }
-        if ($style->fontSize !== null) {
-            $css[] = 'font-size: '.$style->fontSize.'pt';
-        }
-        if ($style->bold !== null) {
-            $css[] = 'font-weight: '.($style->bold ? 'bold' : 'normal');
-        }
-        if ($style->italic !== null) {
-            $css[] = 'font-style: '.($style->italic ? 'italic' : 'normal');
-        }
-
-        $decorations = array_keys(array_filter(['underline' => $style->underline, 'line-through' => $style->strike]));
-        if ($style->underline !== null || $style->strike !== null) {
-            $css[] = 'text-decoration: '.($decorations === [] ? 'none' : implode(' ', $decorations));
-        }
-        if ($style->color !== null) {
-            $css[] = 'color: #'.$style->color;
-        }
-        if ($style->background !== null) {
-            $css[] = 'background-color: #'.$style->background;
-        }
-
-        return $css === [] ? '' : implode('; ', $css).';';
-    }
-
-    protected function blockCss(Style $style): string
-    {
-        $css = $this->textCss($style);
-
-        if ($style->align !== null) {
-            $css .= ' text-align: '.$style->align->value.';';
-        }
-        if ($style->padding !== null) {
-            $css .= ' padding: '.$style->padding.'mm;';
-        }
-        if ($style->border?->isVisible()) {
-            $css .= ' border: '.$this->borderCss($style->border).';';
-        }
-
-        return trim($css.' '.$this->spacingCss($style));
-    }
-
-    protected function cellCss(Style $style, ?Border $border, float $padding): string
-    {
-        $css = $this->textCss($style)
-            .' text-align: '.($style->align ?? Align::Left)->value.';'
-            .' vertical-align: '.$this->verticalAlign($style->verticalAlign ?? VerticalAlign::Top).';'
-            .' padding: '.($style->padding ?? $padding).'mm;';
-
-        $border = $style->border ?? $border;
-
-        return $css.($border?->isVisible() ? ' border: '.$this->borderCss($border).';' : '');
-    }
-
-    protected function spacingCss(Style $style): string
-    {
-        return 'margin-top: '.($style->spaceBefore ?? 0).'mm; margin-bottom: '.($style->spaceAfter ?? 0).'mm;';
-    }
-
-    protected function borderCss(Border $border): string
-    {
-        return $border->width.'pt '.$border->line->value.' #'.$border->color;
-    }
-
-    protected function verticalAlign(VerticalAlign $align): string
-    {
-        return $align === VerticalAlign::Middle ? 'middle' : $align->value;
-    }
-
-    /**
      * mPDF font keys are the lowercase family name without spaces.
      */
     protected function fontKey(string $family): string
     {
         return strtolower(str_replace(' ', '', $family));
-    }
-
-    protected function escape(string $text): string
-    {
-        return nl2br(htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), false);
     }
 }

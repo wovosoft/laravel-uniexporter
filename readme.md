@@ -1,12 +1,15 @@
 # Laravel Uniexporter
 
-Describe a document once as a schema of components, then export it to PDF, DOCX or XLSX. Each format is a driver, so you can replace one or add your own.
+Describe a document once as a schema of components, then export it to PDF, DOCX, XLSX or HTML. Each format is a driver, so you can replace one or add your own.
 
 | Format | Default driver | Library (install it yourself) |
 |--------|----------------|-------------------------------|
 | `pdf`  | `MpdfDriver`     | `mpdf/mpdf` ^8.2 |
 | `docx` | `PhpWordDriver`  | `phpoffice/phpword` ^1.2 |
 | `xlsx` | `OpenSpoutDriver`| `openspout/openspout` ^5.0 |
+| `html` | `HtmlDriver`     | none |
+
+The HTML driver writes a standalone page (images embedded, table cell styles as shared classes) for viewing or printing in a browser. It is also the markup base of the PDF driver, so PDF and HTML render the same schema the same way. Page headers and footers are PDF/DOCX/XLSX only.
 
 ## Installation
 
@@ -79,7 +82,7 @@ $export = (new SalaryStatement())->data([
     'title'     => 'Salary Statement',
     'office'    => $office,
     'employees' => $query->lazy(),           // iterables are consumed while rendering
-])->exportToPdf();                            // exportToDocx(), exportToExcel(), export('xlsx')
+])->exportToPdf();                            // exportToDocx(), exportToExcel(), export('html')
 
 return $export->inline();                     // or download(), or return $export (Responsable)
 $export->store('exports/salary.pdf', 's3');   // a disk; the temporary file is removed
