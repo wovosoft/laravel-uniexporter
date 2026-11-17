@@ -765,7 +765,7 @@ class OpenSpoutDriver extends AbstractDriver
             }
 
             return match (true) {
-                $component instanceof Table    => count($component->getColumns()),
+                $component instanceof Table    => count($component->forFormat($context->format)->getColumns()),
                 $component instanceof KeyValue => $component->getColumns() * 2,
                 $component instanceof Columns  => count($component->getBlocks()),
                 $component instanceof Group    => max([0, ...array_map($measure, $component->getChildren())]),

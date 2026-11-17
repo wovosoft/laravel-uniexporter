@@ -87,6 +87,18 @@ class XlsxExportTest extends TestCase
         $this->assertStringContainsString('<mergeCell ref="A1:D1"/>', $this->zipEntry($export->path(), 'xl/worksheets/sheet2.xml'));
     }
 
+    public function test_headings_span_only_the_columns_shown_in_spreadsheets(): void
+    {
+        $document = Document::make()->components([
+            Heading::make('Across'),
+            Table::make('rows')->columns([Column::make('a'), Column::make('b'), Column::make('pdf_only')->hiddenOn('xlsx')]),
+        ]);
+
+        $export = $this->export($document, ['rows' => [['a' => 1, 'b' => 2, 'pdf_only' => 3]]], 'xlsx');
+
+        $this->assertStringContainsString('<mergeCell ref="A1:B1"/>', $this->zipEntry($export->path(), 'xl/worksheets/sheet1.xml'));
+    }
+
     public function test_columns_can_be_formulas_and_totals_sum_formulas(): void
     {
         $document = Document::make()->components([
