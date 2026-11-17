@@ -11,6 +11,8 @@ Describe a document once as a schema of components, then export it to PDF, DOCX,
 
 The HTML driver writes a standalone page (images embedded, table cell styles as shared classes) for viewing or printing in a browser. It is also the markup base of the PDF driver, so PDF and HTML render the same schema the same way. Page headers and footers are PDF/DOCX/XLSX only.
 
+Full documentation: [docs/](docs/README.md): [getting started](docs/01-getting-started.md), [documents and data](docs/02-documents-and-data.md), [components](docs/03-components.md), [tables](docs/04-tables-and-columns.md), [styling](docs/05-styling.md), [page setup](docs/06-page-setup.md), [formats](docs/07-formats.md), [extending](docs/08-extending.md), [testing](docs/09-testing.md).
+
 ## Installation
 
 ```bash
