@@ -53,6 +53,14 @@ class PhpWordDriver extends AbstractDriver
 {
     private PhpWord $phpWord;
 
+    /**
+     * Named styles registered for table cells: serialized style => name. Cells share them instead of
+     * each carrying its own style objects, which keeps big tables' memory down.
+     *
+     * @var array<string, string>
+     */
+    private array $sharedStyles = [];
+
     private Section $section;
 
     /**
@@ -88,6 +96,7 @@ class PhpWordDriver extends AbstractDriver
 
         try {
             $this->phpWord = new PhpWord();
+            $this->sharedStyles = [];
             $this->configureDocument($context);
             $this->section = $this->phpWord->addSection($this->sectionStyle($context));
             $this->addHeadersAndFooters($context);
@@ -472,7 +481,10 @@ class PhpWordDriver extends AbstractDriver
         }
     }
 
-    protected function addLines(AbstractContainer $run, string $text, array $font): void
+    /**
+     * @param array<string, mixed>|string $font font properties or a registered style name
+     */
+    protected function addLines(AbstractContainer $run, string $text, array|string $font): void
     {
         foreach (preg_split('/\R/u', $text) ?: [''] as $index => $line) {
             if ($index > 0) {
@@ -484,8 +496,28 @@ class PhpWordDriver extends AbstractDriver
 
     protected function addCellText(AbstractContainer $cell, string $text, Style $style): void
     {
-        $run = $cell->addTextRun(['alignment' => $this->alignment($style->align ?? Align::Left), 'spaceBefore' => 0, 'spaceAfter' => 0]);
-        $this->addLines($run, $text, $this->fontStyle($style));
+        $run = $cell->addTextRun($this->sharedStyle('paragraph', ['alignment' => $this->alignment($style->align ?? Align::Left), 'spaceBefore' => 0, 'spaceAfter' => 0]));
+        $font = $this->fontStyle($style);
+        $this->addLines($run, $text, $font === [] ? $font : $this->sharedStyle('font', $font));
+    }
+
+    /**
+     * The name of a registered style with these properties, registering it on first use.
+     *
+     * @param 'font'|'paragraph' $type
+     * @param array<string, mixed> $properties
+     */
+    protected function sharedStyle(string $type, array $properties): string
+    {
+        $key = $type.serialize($properties);
+
+        if (! isset($this->sharedStyles[$key])) {
+            $name = 'ux'.ucfirst($type).count($this->sharedStyles);
+            $type === 'font' ? $this->phpWord->addFontStyle($name, $properties) : $this->phpWord->addParagraphStyle($name, $properties);
+            $this->sharedStyles[$key] = $name;
+        }
+
+        return $this->sharedStyles[$key];
     }
 
     protected function addSpacingAfter(AbstractContainer $container, Style $style): void

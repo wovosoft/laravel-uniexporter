@@ -55,7 +55,9 @@ class PageAndTableLayoutTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/\.'.$short[1][0].'\{[^}]*color: #FF0000/', $html);
 
         $this->assertStringContainsString('FFFF0000', $this->zipEntry($this->export($document, $data, 'xlsx')->path(), 'xl/styles.xml'));
-        $this->assertStringContainsString('w:color w:val="FF0000"', $this->zipEntry($this->export($document, $data, 'docx')->path(), 'word/document.xml'));
+        $docx = $this->export($document, $data, 'docx')->path();
+        $this->assertStringContainsString('w:color w:val="FF0000"', $this->zipEntry($docx, 'word/styles.xml'), 'Word cells share named styles.');
+        $this->assertStringContainsString('<w:rStyle w:val="', $this->zipEntry($docx, 'word/document.xml'));
     }
 
     public function test_line_height_reaches_html_and_word(): void
