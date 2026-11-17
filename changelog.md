@@ -2,9 +2,18 @@
 
 All notable changes to `laravel-uniexporter` are documented in this file.
 
-## Unreleased
+## 2.0.0 - 2026-11-18
+
+### Upgrading from 1.x
+- `Document` now has public content methods (`table()`, `text()`, `heading()`, `columns()`, `group()`, `list()`, `image()`, `link()`, `spacer()`, `divider()`, `pageBreak()`, `sheet()`, `nativeContent()`, `keyValue()`, `add()`, `each()`, `when()`, `unless()`, `with()`, `withData()`). A subclass that declares a method with one of these names fails with a fatal error; rename such helpers (for example `table()` to `reportTable()`).
 
 ### Added
+- CSV format (`csv`, OpenSpout): table data only, with formula-safe text.
+- Table sub-rows (`Table::subRows()`, `Column::fromSubRow()`) and header cells spanning rows (`HeaderCell::rowspan()`).
+- Spreadsheet formulas per column (`Column::formula()`), totals computed by a closure, `Table::totalFormulas()`, and a totals label spanning columns (`totalLabel($label, $colspan)`).
+- Cell styles by value (`Column::styleUsing()`).
+- B4 paper.
+- Web fonts for HTML exports (`native('html', ['font_faces' => [...]])`).
 - Chainable API: documents and groups append components with `heading()`, `text()`, `link()`, `image()`, `list()`, `keyValue()`, `table()`, `columns()`, `group()`, `spacer()`, `divider()`, `pageBreak()`, `sheet()`, `nativeContent()`, `add()` and `each()`, plus `when()`/`unless()`.
 - Page settings called on a document (`paper()`, `landscape()`, `font()`, `footer()`...) are forwarded to `Settings`.
 - `Document::withData()` and `with()` attach data, so a document exports without `data()`; `data()` merges over it.
@@ -14,7 +23,14 @@ All notable changes to `laravel-uniexporter` are documented in this file.
 - An AI agent skill and guideline in `resources/boost/`, discovered by Laravel Boost, or published with `vendor:publish --tag=uniexporter.skills`. The skill's API reference is generated from the source by `scripts/skill-reference.php`.
 
 ### Changed
-- `Document` has public `table()`, `text()`, `heading()`... methods; subclasses can no longer declare methods with these names.
+- `Document` has public `table()`, `text()`, `heading()`... methods; subclasses can no longer declare methods with these names (see Upgrading).
+- Big top-level tables are written to mPDF in chunks of `drivers.pdf.table_chunk_rows` rows (default 200), each repeating the header.
+- Word tables share cell styles instead of creating one per cell.
+
+### Fixed
+- Empty tables render in PDFs.
+- The totals label is aligned by the totals style.
+- Sheet headings span the columns actually shown, ignoring hidden components when sizing.
 
 ## 1.0.0 - 2026-11-17
 
