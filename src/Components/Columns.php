@@ -2,6 +2,8 @@
 
 namespace Wovosoft\LaravelUniexporter\Components;
 
+use Closure;
+
 /**
  * Side-by-side blocks, e.g. two signature blocks. Rendered as a borderless table in paged
  * formats and as cells of one row in spreadsheets.
@@ -36,6 +38,35 @@ class Columns extends Component
             $block instanceof Component => new Group([$block]),
             default                     => new Group($block),
         }, array_values($blocks));
+
+        return $this;
+    }
+
+    /**
+     * Appends a block: a closure filling a Group with the content API, a component or a list of components.
+     * ->block(fn (Group $block) => $block->text('Prepared by')->text('{prepared}', fn (Text $t) => $t->bold())).
+     *
+     * @param Closure(Group): mixed|Component|list<Component> $content
+     * @param float|null $width relative width of the block (1 by default)
+     */
+    public function block(Closure|Component|array $content, ?float $width = null): static
+    {
+        if ($content instanceof Closure) {
+            $group = new Group();
+            $result = $content($group);
+            $block = $result instanceof Group ? $result : $group;
+        } else {
+            $block = $content instanceof Group ? $content : new Group($content instanceof Component ? [$content] : $content);
+        }
+
+        if ($width !== null) {
+            $this->widths = array_pad($this->widths, count($this->blocks), 1.0);
+            $this->widths[] = $width;
+        } elseif ($this->widths !== []) {
+            $this->widths[] = 1.0;
+        }
+
+        $this->blocks[] = $block;
 
         return $this;
     }

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Facade;
 use Wovosoft\LaravelUniexporter\UniexporterManager;
 
 /**
+ * @method static \Wovosoft\LaravelUniexporter\Document document()
  * @method static UniexporterManager extend(string $format, string|\Closure $driver)
  * @method static list<string> formats()
  * @method static bool hasFormat(string $format)

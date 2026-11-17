@@ -83,6 +83,40 @@ class Table extends Component
     }
 
     /**
+     * Appends a column: ->column('salary', 'Salary', fn (Column $column) => $column->money()->total()).
+     * Without a label the header is the headline of the key; an empty key makes a computed column.
+     */
+    public function column(string $key = '', ?string $label = null, ?Closure $tap = null): static
+    {
+        $column = Column::make($key);
+
+        if ($label !== null) {
+            $column->label($label);
+        }
+
+        if ($tap !== null) {
+            $result = $tap($column);
+            $column = $result instanceof Column ? $result : $column;
+        }
+
+        $this->columns[] = $column;
+
+        return $this;
+    }
+
+    /**
+     * Appends a header row above the column labels (see headerRows()).
+     *
+     * @param list<HeaderCell|string> $cells
+     */
+    public function headerRow(array $cells): static
+    {
+        $this->headerRows[] = $cells;
+
+        return $this;
+    }
+
+    /**
      * Extra header rows above the column labels; cells can span columns.
      *
      * @param list<list<HeaderCell|string>> $rows

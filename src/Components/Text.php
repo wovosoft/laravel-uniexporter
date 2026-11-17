@@ -2,6 +2,7 @@
 
 namespace Wovosoft\LaravelUniexporter\Components;
 
+use Closure;
 use Wovosoft\LaravelUniexporter\Style\Style;
 
 /**
@@ -34,6 +35,22 @@ class Text extends Component
     public function runs(array $runs): static
     {
         $this->runs = array_map(fn (Run|string $run): Run => is_string($run) ? new Run($run) : $run, $runs);
+
+        return $this;
+    }
+
+    /**
+     * Appends a run; the closure styles it: ->run('Note: ', fn (Run $run) => $run->bold()).
+     */
+    public function run(string $text, ?Closure $tap = null): static
+    {
+        $run = new Run($text);
+
+        if ($tap !== null) {
+            $tap($run);
+        }
+
+        $this->runs[] = $run;
 
         return $this;
     }

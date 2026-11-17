@@ -58,9 +58,11 @@ if ($request->boolean('data_only')) {
 
 - `withStyles(array)` adds named styles to those of `styles()`.
 
+The same document can also be written as one chain of page settings, content and data (`->landscape()->heading('Report')->table('rows', fn (Table $table) => ...)->withData($data)`); see [Chainable API](10-chainable-api.md).
+
 ## Data
 
-`data()` accepts an array, an `Arrayable` (collections, models) or a `Support\Data`. It is read in two ways.
+`data()` accepts an array, an `Arrayable` (collections, models) or a `Support\Data`. Data can also be attached to the document beforehand with `withData()` and `with($key, $value)`; `data()` then merges over it, and a document with attached data can export directly ([Chainable API](10-chainable-api.md#data)). It is read in two ways.
 
 ### Placeholders
 

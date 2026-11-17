@@ -17,6 +17,16 @@ Table::make('employees')
     ->emptyText('No employees found.');
 ```
 
+Columns and header rows can also be appended one at a time, which reads well in the [chainable API](10-chainable-api.md#tables):
+
+```php
+Table::make('employees')
+    ->headerRow([HeaderCell::make('Employee')->colspan(2), 'Salary'])
+    ->column('job_id', 'PF No.', fn (Column $column) => $column->text())
+    ->column('person.name', 'Name')
+    ->column('basic_salary', 'Basic', fn (Column $column) => $column->money()->total());
+```
+
 ## Rows
 
 `Table::make($rows)` / `->rows($rows)` takes a data path (`'employees'`, `'office.employees'`) or an iterable. Rows may be arrays, objects or Eloquent models. Iterables are consumed once, row by row, so lazy collections keep memory flat.

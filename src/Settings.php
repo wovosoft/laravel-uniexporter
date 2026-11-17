@@ -4,6 +4,7 @@ namespace Wovosoft\LaravelUniexporter;
 
 use Closure;
 use Wovosoft\LaravelUniexporter\Components\Component;
+use Wovosoft\LaravelUniexporter\Components\Group;
 use Wovosoft\LaravelUniexporter\Style\Margins;
 use Wovosoft\LaravelUniexporter\Style\Orientation;
 use Wovosoft\LaravelUniexporter\Style\Paper;
@@ -249,13 +250,14 @@ final class Settings
     /**
      * Components (a letterhead, a title line...) repeated at the top of every page, above any text
      * header. PDF and DOCX repeat them per page; HTML shows them once at the top; spreadsheets skip them.
-     * The PDF top margin grows to fit them.
+     * The PDF top margin grows to fit them. A closure builds them with the content API:
+     * ->headerContent(fn (Group $header) => $header->text('Bank name')->text('{office}')).
      *
-     * @param list<Component> $components
+     * @param list<Component>|Closure(Group): mixed $components
      */
-    public function headerContent(array $components): self
+    public function headerContent(array|Closure $components): self
     {
-        $this->headerContent = array_values($components);
+        $this->headerContent = self::contents($components);
 
         return $this;
     }
@@ -263,13 +265,29 @@ final class Settings
     /**
      * Components repeated at the bottom of every page (PDF, DOCX), shown once at the end in HTML.
      *
-     * @param list<Component> $components
+     * @param list<Component>|Closure(Group): mixed $components
      */
-    public function footerContent(array $components): self
+    public function footerContent(array|Closure $components): self
     {
-        $this->footerContent = array_values($components);
+        $this->footerContent = self::contents($components);
 
         return $this;
+    }
+
+    /**
+     * @param list<Component>|Closure(Group): mixed $components
+     * @return list<Component>
+     */
+    private static function contents(array|Closure $components): array
+    {
+        if (is_array($components)) {
+            return array_values($components);
+        }
+
+        $group = new Group();
+        $result = $components($group);
+
+        return ($result instanceof Group ? $result : $group)->getChildren();
     }
 
     /**

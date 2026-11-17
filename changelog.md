@@ -2,6 +2,18 @@
 
 All notable changes to `laravel-uniexporter` are documented in this file.
 
+## Unreleased
+
+### Added
+- Chainable API: documents and groups append components with `heading()`, `text()`, `link()`, `image()`, `list()`, `keyValue()`, `table()`, `columns()`, `group()`, `spacer()`, `divider()`, `pageBreak()`, `sheet()`, `nativeContent()`, `add()` and `each()`, plus `when()`/`unless()`.
+- Page settings called on a document (`paper()`, `landscape()`, `font()`, `footer()`...) are forwarded to `Settings`.
+- `Document::withData()` and `with()` attach data, so a document exports without `data()`; `data()` merges over it.
+- `Table::column()` and `Table::headerRow()`, `Columns::block()`, `Text::run()`, and `headerContent()`/`footerContent()` closures.
+- `Uniexporter::document()`.
+
+### Changed
+- `Document` has public `table()`, `text()`, `heading()`... methods; subclasses can no longer declare methods with these names.
+
 ## 1.0.0 - 2026-11-17
 
 ### Added

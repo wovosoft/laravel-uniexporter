@@ -1,6 +1,6 @@
 # Components
 
-Every component is created with `::make(...)`, takes the [style methods](05-styling.md), and can be limited to or adjusted for some formats (see [Formats](07-formats.md#per-format-adjustments)):
+Every component is created with `::make(...)` (or appended with the document's chainable methods such as `->text()` and `->table()`, see [Chainable API](10-chainable-api.md)), takes the [style methods](05-styling.md), and can be limited to or adjusted for some formats (see [Formats](07-formats.md#per-format-adjustments)):
 
 ```php
 Text::make('Internal note')
@@ -51,6 +51,8 @@ Text::make()->runs([
 ]);
 ```
 
+`Text::run($text, $tap)` appends a run: `Text::make()->run('Note: ', fn (Run $run) => $run->bold())->run('see below')`.
+
 A run takes the style methods; it inherits the paragraph's style. Default style: 1.5 mm space after.
 
 ## Link
@@ -99,6 +101,10 @@ See [Tables and columns](04-tables-and-columns.md).
 Blocks side by side (a layout table without borders):
 
 ```php
+Columns::make()
+    ->block(fn (Group $block) => $block->text('Prepared by')->text('{prepared}', fn (Text $text) => $text->bold()))
+    ->block(Image::make('{signature}')->width(30), width: 0.5);   // appended one at a time
+
 Columns::make([
     [Text::make('Prepared by'), Text::make('{prepared}')->bold()],     // a list becomes a Group
     Group::make([Text::make('Approved by')])->right(),
@@ -115,6 +121,8 @@ Group::make([Heading::make('Signatures', 2), Columns::make([...])])
     ->keepTogether()          // avoid splitting across pages (PDF/HTML print)
     ->font('Nikosh');         // inherited by the children
 ```
+
+A group also has the document's content methods, to fill it as a chain: `Group::make()->heading('Signatures', 2)->text('...')->keepTogether()`.
 
 Children inherit the group's text properties (font, size, color, bold, italic, alignment, line height); box properties (padding, borders, spacing) are not inherited.
 

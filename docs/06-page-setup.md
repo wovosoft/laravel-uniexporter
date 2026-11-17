@@ -17,6 +17,8 @@ public function settings(Settings $settings): Settings
 }
 ```
 
+On an inline document the same methods can be called on the document itself (`Document::make()->paper('A4')->landscape()->footer(right: '{page}/{pages}')`); see [Chainable API](10-chainable-api.md#page-setup).
+
 ## Paper and orientation
 
 | Method | Values |
@@ -83,6 +85,14 @@ A letterhead, a title line or anything else built from components, repeated on e
     Text::make('Subject: {subject}')->underline(),
 ])
 ->footerContent([Text::make('This is a system generated document.')->size(8)->center()])
+```
+
+Or built with the content methods, from a closure that fills a `Group`:
+
+```php
+->headerContent(fn (Group $header) => $header
+    ->text('Acme Bank Ltd.', fn (Text $text) => $text->bold())
+    ->text('Subject: {subject}', fn (Text $text) => $text->underline()))
 ```
 
 - **PDF**: on every page; the top (or bottom) margin grows to fit the content. Text slots from `header()` render below the components, `footer()` slots above them.
