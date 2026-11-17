@@ -23,7 +23,8 @@ use Wovosoft\LaravelUniexporter\Style\Style;
  * may return replacement HTML. Native components get (Mpdf $mpdf, RenderContext $context).
  * Document hooks get (Mpdf $mpdf, RenderContext $context).
  *
- * Driver options: 'config' (mPDF constructor config), 'font_dir', 'font_data', and
+ * Driver options: 'config' (mPDF constructor config), 'font_dir', 'font_data', 'table_chunk_rows'
+ * (rows per table written to mPDF at once, default 200, to bound its memory on big tables) and
  * 'html_listener' (a callable receiving each HTML chunk, for debugging and tests).
  */
 class MpdfDriver extends HtmlDriver
@@ -73,6 +74,16 @@ class MpdfDriver extends HtmlDriver
         $this->runCallbacks($context->document->getAfterRender('pdf'), $this->mpdf, $context);
 
         $this->mpdf->Output($path, Destination::FILE);
+    }
+
+    protected function tableChunkRows(): ?int
+    {
+        return max(1, (int) ($this->options['table_chunk_rows'] ?? 200));
+    }
+
+    protected function afterTableChunk(): void
+    {
+        $this->flush();
     }
 
     public function getMpdf(): Mpdf

@@ -151,4 +151,36 @@ class PdfExportTest extends TestCase
         $this->assertSame([], $errors);
         $this->assertStringStartsWith('%PDF', (string) file_get_contents($path, length: 4));
     }
+
+    public function test_big_tables_reach_mpdf_in_chunks_that_keep_row_spans_whole(): void
+    {
+        $chunks = [];
+        $manager = $this->manager(['drivers' => ['pdf' => [
+            'table_chunk_rows' => 2,
+            'html_listener'    => function (string $html) use (&$chunks): void {
+                if (str_contains($html, '<table')) {
+                    $chunks[] = $html;
+                }
+            },
+        ]]]);
+
+        $document = Document::make()->components([
+            Table::make('rows')->subRows('items')->columns([Column::make('name'), Column::make('item')->fromSubRow()]),
+        ]);
+        $rows = [
+            ['name' => 'A', 'items' => [['item' => 'a1'], ['item' => 'a2'], ['item' => 'a3']]],
+            ['name' => 'B', 'items' => []],
+            ['name' => 'C', 'items' => []],
+        ];
+
+        $this->export($document, ['rows' => $rows], 'pdf', $manager);
+
+        $this->assertCount(2, $chunks, 'A row and its sub-rows stay in one chunk; the next chunk starts at a new row.');
+        foreach ($chunks as $chunk) {
+            $this->assertStringContainsString('<thead>', $chunk);
+        }
+        $this->assertStringContainsString('rowspan="3"', $chunks[0]);
+        $this->assertStringContainsString('>B<', $chunks[1]);
+        $this->assertStringContainsString('>C<', $chunks[1]);
+    }
 }

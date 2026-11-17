@@ -69,6 +69,11 @@ class HtmlDriver extends AbstractDriver
     protected string $pendingCss = '';
 
     /**
+     * How many capture() calls are rendering right now; tables inside containers are never split.
+     */
+    private int $captureDepth = 0;
+
+    /**
      * @param array<string, mixed> $options
      */
     public function __construct(protected readonly array $options = []) {}
@@ -319,10 +324,30 @@ class HtmlDriver extends AbstractDriver
             }
         }
 
+        $headHtml = $head === '' ? '' : ($table->shouldRepeatHeader() ? '<thead>'.$head.'</thead>' : $head);
+        $chunkRows = $this->captureDepth === 0 ? $this->tableChunkRows() : null;
+        $bodyRows = 0;
+        $chunks = 0;
+        $tableHtml = function (string $body, bool $last) use ($style, $headHtml, &$chunks): string {
+            // Chunks of a split table sit flush against each other, with the header repeated on each.
+            $spacing = $style->merge(Style::make()->spaceBefore($chunks === 0 ? ($style->spaceBefore ?? 0) : 0)->spaceAfter($last ? ($style->spaceAfter ?? 0) : 0));
+            $chunks++;
+
+            return '<table'.$this->tableAttributes().' style="width: 100%; border-collapse: collapse; '.$this->spacingCss($spacing).'">'
+                .($chunks === 1 || $this->tableHeadRepeats($headHtml) ? $headHtml : '').'<tbody>'.$body.'</tbody></table>';
+        };
+
         $body = '';
         $columnStyles = array_map(fn ($column): Style => $style->merge($column->getInlineStyle())->merge(Style::make()->padding($padding)), $columns);
 
         foreach ($rows->rows() as $row) {
+            if ($chunkRows !== null && $row->subRow === 0 && $bodyRows >= $chunkRows) {
+                $this->emit($table, $context, $tableHtml($body, false));
+                $this->afterTableChunk();
+                $body = '';
+                $bodyRows = 0;
+            }
+            $bodyRows++;
             $stripe = $table->getStripeColor() !== null && $row->index % 2 === 1 ? Style::make()->background($table->getStripeColor()) : null;
             $body .= '<tr>';
             foreach ($row->texts as $position => $text) {
@@ -355,10 +380,15 @@ class HtmlDriver extends AbstractDriver
             $body .= '</tr>';
         }
 
-        $headHtml = $head === '' ? '' : ($table->shouldRepeatHeader() ? '<thead>'.$head.'</thead>' : $head);
-        $tableCss = 'width: 100%; border-collapse: collapse; '.$this->spacingCss($style);
+        $this->emit($table, $context, $tableHtml($body, true));
+    }
 
-        $this->emit($table, $context, '<table'.$this->tableAttributes().' style="'.$tableCss.'">'.$headHtml.'<tbody>'.$body.'</tbody></table>');
+    /**
+     * Whether later chunks of a split table repeat its header (a repeating thead).
+     */
+    private function tableHeadRepeats(string $headHtml): bool
+    {
+        return str_starts_with($headHtml, '<thead>');
     }
 
     protected function renderKeyValue(KeyValue $keyValue, RenderContext $context, ?Style $inherited, bool $inline): void
@@ -458,12 +488,33 @@ class HtmlDriver extends AbstractDriver
     {
         $previous = $this->buffer;
         $this->buffer = '';
-        $render();
+        $this->captureDepth++;
+
+        try {
+            $render();
+        } finally {
+            $this->captureDepth--;
+        }
+
         $captured = $this->buffer;
         $this->buffer = $previous;
 
         return $captured;
     }
+
+    /**
+     * Rows per table chunk for a top-level table, or null to write it whole. The PDF driver splits
+     * big tables so mPDF never parses one huge table at once.
+     */
+    protected function tableChunkRows(): ?int
+    {
+        return null;
+    }
+
+    /**
+     * Called after a chunk of a split table has been emitted.
+     */
+    protected function afterTableChunk(): void {}
 
     /**
      * @param list<string|array{text: string, items?: list<mixed>}> $items

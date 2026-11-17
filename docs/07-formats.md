@@ -37,6 +37,7 @@ if ($request->boolean('without_headers')) {
 ## PDF (`pdf`, mPDF)
 
 - The schema becomes HTML and CSS, written to mPDF one top-level component at a time, and saved to a file.
+- Big top-level tables are written in chunks of `drivers.pdf.table_chunk_rows` rows (default 200), each repeating the header, so mPDF never parses one huge table. Chunks split between rows, never inside a row's sub-rows.
 - Fonts must be registered in `drivers.pdf.font_data` (keys are the lowercase family without spaces) with `useOTL => 0xFF` for scripts that need shaping, such as Bengali.
 - Wide tables keep their column widths: `shrink_tables_to_fit` is off and tables use `autosize`, so mPDF only shrinks a table that cannot fit.
 - `repeatHeader()` repeats table headers on every page; `Group::keepTogether()` avoids page breaks inside a block.
