@@ -42,7 +42,7 @@ Document::make()
 
 ```php
 ->headerContent(fn (Group $header) => $header
-    ->text('Bangladesh Krishi Bank', fn (Text $text) => $text->bold()->center())
+    ->text('Acme Bank Ltd.', fn (Text $text) => $text->bold()->center())
     ->text('{office}', fn (Text $text) => $text->center()))
 ```
 
