@@ -117,9 +117,4 @@ class PdfExportTest extends TestCase
 
         $this->export($document, [], 'pdf');
     }
-
-    private function commandExists(string $command): bool
-    {
-        return trim((string) shell_exec('command -v '.escapeshellarg($command))) !== '';
-    }
 }

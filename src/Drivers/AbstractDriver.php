@@ -3,10 +3,12 @@
 namespace Wovosoft\LaravelUniexporter\Drivers;
 
 use Closure;
+use Wovosoft\LaravelUniexporter\Components\Column;
 use Wovosoft\LaravelUniexporter\Components\Component;
 use Wovosoft\LaravelUniexporter\Components\HeaderCell;
 use Wovosoft\LaravelUniexporter\Components\ListBlock;
 use Wovosoft\LaravelUniexporter\Components\Run;
+use Wovosoft\LaravelUniexporter\Components\Table;
 use Wovosoft\LaravelUniexporter\Style\Align;
 use Wovosoft\LaravelUniexporter\Style\Style;
 use Wovosoft\LaravelUniexporter\Exceptions\MissingDependencyException;
@@ -89,6 +91,19 @@ abstract class AbstractDriver implements Driver
             ->merge(Style::make()->align(Align::Center))
             ->merge($cell->getStyleName() !== null ? $context->namedStyle($cell->getStyleName()) : null)
             ->merge($cell->getInlineStyle());
+    }
+
+    /**
+     * Style of a column's header cell: aligned like the column unless the table's header style sets an
+     * alignment (e.g. every label centered), then the column's own header style.
+     */
+    protected function columnHeaderStyle(Style $tableStyle, Table $table, Column $column, ?Style $base = null): Style
+    {
+        return $tableStyle
+            ->merge(Style::make()->align($column->getInlineStyle()?->align ?? Align::Left))
+            ->merge($base)
+            ->merge($table->getHeaderStyle())
+            ->merge($column->getHeaderStyle());
     }
 
     /**

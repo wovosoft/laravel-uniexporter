@@ -3,6 +3,7 @@
 namespace Wovosoft\LaravelUniexporter;
 
 use Closure;
+use Wovosoft\LaravelUniexporter\Components\Component;
 use Wovosoft\LaravelUniexporter\Style\Margins;
 use Wovosoft\LaravelUniexporter\Style\Orientation;
 use Wovosoft\LaravelUniexporter\Style\Paper;
@@ -49,6 +50,23 @@ final class Settings
      * @var array<string, list<Closure(self): (self|null)>> format => adjustments applied when exporting to it
      */
     private array $formatAdjustments = [];
+
+    /**
+     * @var list<Component> components rendered as the page header, on every page
+     */
+    private array $headerContent = [];
+
+    /**
+     * @var list<Component> components rendered as the page footer, on every page
+     */
+    private array $footerContent = [];
+
+    /**
+     * @var array{path: string, alpha: float, width: float|null, height: float|null}|null
+     */
+    private ?array $watermark = null;
+
+    private bool $fitToWidth = false;
 
     public function __construct()
     {
@@ -229,12 +247,62 @@ final class Settings
     }
 
     /**
+     * Components (a letterhead, a title line...) repeated at the top of every page, above any text
+     * header. PDF and DOCX repeat them per page; HTML shows them once at the top; spreadsheets skip them.
+     * The PDF top margin grows to fit them.
+     *
+     * @param list<Component> $components
+     */
+    public function headerContent(array $components): self
+    {
+        $this->headerContent = array_values($components);
+
+        return $this;
+    }
+
+    /**
+     * Components repeated at the bottom of every page (PDF, DOCX), shown once at the end in HTML.
+     *
+     * @param list<Component> $components
+     */
+    public function footerContent(array $components): self
+    {
+        $this->footerContent = array_values($components);
+
+        return $this;
+    }
+
+    /**
+     * An image behind the content of every page, centered (PDF and DOCX).
+     *
+     * @param float $alpha opacity from 0 (invisible) to 1
+     * @param float|null $width millimetres; null keeps the image's size
+     */
+    public function watermark(string $imagePath, float $alpha = 0.2, ?float $width = null, ?float $height = null): self
+    {
+        $this->watermark = ['path' => $imagePath, 'alpha' => $alpha, 'width' => $width, 'height' => $height];
+
+        return $this;
+    }
+
+    /**
+     * Prints spreadsheets scaled to one page wide (as many pages tall as needed).
+     */
+    public function fitToWidth(bool $fit = true): self
+    {
+        $this->fitToWidth = $fit;
+
+        return $this;
+    }
+
+    /**
      * Removes the page header, including the first-page one.
      */
     public function withoutHeader(): self
     {
         $this->header = null;
         $this->firstPageHeader = null;
+        $this->headerContent = [];
 
         return $this;
     }
@@ -246,8 +314,38 @@ final class Settings
     {
         $this->footer = null;
         $this->firstPageFooter = null;
+        $this->footerContent = [];
 
         return $this;
+    }
+
+    /**
+     * @return list<Component>
+     */
+    public function getHeaderContent(): array
+    {
+        return $this->headerContent;
+    }
+
+    /**
+     * @return list<Component>
+     */
+    public function getFooterContent(): array
+    {
+        return $this->footerContent;
+    }
+
+    /**
+     * @return array{path: string, alpha: float, width: float|null, height: float|null}|null
+     */
+    public function getWatermark(): ?array
+    {
+        return $this->watermark;
+    }
+
+    public function shouldFitToWidth(): bool
+    {
+        return $this->fitToWidth;
     }
 
     public function getPaper(): Paper

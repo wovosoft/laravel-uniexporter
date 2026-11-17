@@ -26,7 +26,7 @@ class HtmlExportTest extends TestCase
         $this->assertStringContainsString('115,500.75', $html);
         $this->assertStringContainsString('Karim &amp; Sons &lt;script&gt;', $html, 'Data must be HTML-escaped.');
         $this->assertStringNotContainsString('<script>', $html);
-        $this->assertStringContainsString("font-family: 'FreeSerif', serif", $html);
+        $this->assertStringContainsString("font-family: 'FreeSerif', sans-serif", $html);
         $this->assertStringContainsString('src="data:image/png;base64,', $html, 'Images are embedded, not linked to server paths.');
         $this->assertStringContainsString('page-break-after: always', $html);
         $this->assertStringNotContainsString('<pagebreak', $html, 'mPDF-only markup stays out of HTML.');

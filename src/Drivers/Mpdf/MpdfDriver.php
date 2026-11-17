@@ -51,6 +51,14 @@ class MpdfDriver extends HtmlDriver
         $this->mpdf->SetSubject($context->text($settings->getSubject()));
         $this->mpdf->SetKeywords($context->text($settings->getKeywords()));
 
+        if (($watermark = $settings->getWatermark()) !== null && ($image = $context->imagePath($watermark['path'])) !== null) {
+            $size = $watermark['width'] !== null || $watermark['height'] !== null
+                ? $this->imageSize($image, $watermark['width'], $watermark['height'])
+                : 'D';
+            $this->mpdf->SetWatermarkImage($image, $watermark['alpha'], $size, 'P');
+            $this->mpdf->showWatermarkImage = true;
+        }
+
         $this->runCallbacks($context->document->getBeforeRender('pdf'), $this->mpdf, $context);
 
         $this->writeHtml($this->pageCss($context), HTMLParserMode::HEADER_CSS);
@@ -100,6 +108,16 @@ class MpdfDriver extends HtmlDriver
             'shrink_tables_to_fit' => 0,
             'packTableData'        => true,
         ];
+
+        // Component headers/footers have a height only known once rendered: grow the margins to fit them.
+        if ($settings->getHeaderContent() !== []) {
+            $config['setAutoTopMargin'] = 'stretch';
+            $config['autoMarginPadding'] = 2;
+        }
+        if ($settings->getFooterContent() !== []) {
+            $config['setAutoBottomMargin'] = 'stretch';
+            $config['autoMarginPadding'] = 2;
+        }
 
         if ($default->fontFamily !== null) {
             $config['default_font'] = $this->fontKey($default->fontFamily);
@@ -182,8 +200,8 @@ class MpdfDriver extends HtmlDriver
         );
 
         $page = '@page { '.$marginCss
-            .($settings->getHeader() ? ' header: html_uxHeader;' : '')
-            .($settings->getFooter() ? ' footer: html_uxFooter;' : '').' }';
+            .($settings->getHeader() || $settings->getHeaderContent() !== [] ? ' header: html_uxHeader;' : '')
+            .($settings->getFooter() || $settings->getFooterContent() !== [] ? ' footer: html_uxFooter;' : '').' }';
 
         if ($settings->getFirstPageHeader() || $settings->getFirstPageFooter()) {
             $page .= ' @page :first { '
@@ -212,6 +230,23 @@ class MpdfDriver extends HtmlDriver
             }
 
             $html = $this->headerFooterHtml($headerFooter, $context);
+            $type === 'header' ? $this->mpdf->DefHTMLHeaderByName($name, $html) : $this->mpdf->DefHTMLFooterByName($name, $html);
+        }
+
+        // Component content goes above (header) or below (footer) the text slots, on every page.
+        foreach (['uxHeader' => [$settings->getHeaderContent(), $settings->getHeader(), 'header'], 'uxFooter' => [$settings->getFooterContent(), $settings->getFooter(), 'footer']] as $name => [$components, $text, $type]) {
+            if ($components === []) {
+                continue;
+            }
+
+            $content = $this->capture(function () use ($components, $context): void {
+                foreach ($components as $component) {
+                    $this->renderComponent($component, $context, null, false);
+                }
+            });
+            $slots = $text !== null && ! $text->isEmpty() ? $this->headerFooterHtml($text, $context) : '';
+            $html = $type === 'header' ? $content.$slots : $slots.$content;
+
             $type === 'header' ? $this->mpdf->DefHTMLHeaderByName($name, $html) : $this->mpdf->DefHTMLFooterByName($name, $html);
         }
     }

@@ -113,4 +113,9 @@ abstract class TestCase extends BaseTestCase
 
         return $sheets;
     }
+
+    protected function commandExists(string $command): bool
+    {
+        return trim((string) shell_exec('command -v '.escapeshellarg($command))) !== '';
+    }
 }

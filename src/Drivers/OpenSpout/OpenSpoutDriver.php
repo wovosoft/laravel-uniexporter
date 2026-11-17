@@ -22,6 +22,7 @@ use OpenSpout\Writer\XLSX\Options;
 use OpenSpout\Writer\XLSX\Options\HeaderFooter as SpoutHeaderFooter;
 use OpenSpout\Writer\XLSX\Options\PageMargin;
 use OpenSpout\Writer\XLSX\Options\PageOrientation;
+use OpenSpout\Writer\XLSX\Entity\SheetView;
 use OpenSpout\Writer\XLSX\Options\PageSetup;
 use OpenSpout\Writer\XLSX\Options\PaperSize;
 use OpenSpout\Writer\XLSX\Properties;
@@ -91,6 +92,8 @@ class OpenSpoutDriver extends AbstractDriver
 
     private bool $printTitlesSet = false;
 
+    private bool $headerFrozen = false;
+
     /**
      * @param array<string, mixed> $options
      */
@@ -151,6 +154,8 @@ class OpenSpoutDriver extends AbstractDriver
             'pageSetup'      => new PageSetup(
                 $settings->isLandscape() ? PageOrientation::LANDSCAPE : PageOrientation::PORTRAIT,
                 $this->paperSize($settings->getPaper()),
+                fitToHeight: $settings->shouldFitToWidth() ? 0 : null,
+                fitToWidth: $settings->shouldFitToWidth() ? 1 : null,
             ),
             'headerFooter'   => $this->headerFooter($context),
             'properties'     => new Properties(
@@ -211,7 +216,7 @@ class OpenSpoutDriver extends AbstractDriver
         $rows = new TableRows($table, $context->data);
         $from = $this->rowCount + 1;
 
-        $this->applyColumnWidths($table->getWidthPercentages(), $context);
+        $this->applyColumnWidths($table, $context);
 
         if ($table->shouldShowHeader()) {
             $headerFrom = $this->rowCount + 1;
@@ -235,9 +240,7 @@ class OpenSpoutDriver extends AbstractDriver
 
             $labels = [];
             foreach ($columns as $column) {
-                $cellStyle = $headerStyle
-                    ->merge(Style::make()->align($column->getInlineStyle()?->align ?? Align::Left)->wrap())
-                    ->merge($column->getHeaderStyle());
+                $cellStyle = $this->columnHeaderStyle($style, $table, $column, Style::make()->wrap());
                 $labels[] = new StringCell($context->text($column->getLabel()), $this->spoutStyle($cellStyle, $border));
             }
             $this->addRow($labels);
@@ -246,10 +249,15 @@ class OpenSpoutDriver extends AbstractDriver
                 $this->writer->getCurrentSheet()->setPrintTitleRows('$'.$headerFrom.':$'.$this->rowCount);
                 $this->printTitlesSet = true;
             }
+
+            if ($table->shouldFreezeHeader() && ! $this->headerFrozen) {
+                $this->writer->getCurrentSheet()->setSheetView((new SheetView())->withFreezeRow($this->rowCount + 1));
+                $this->headerFrozen = true;
+            }
         }
 
-        // Body cells wrap and sit at the top, as table cells do in the PDF and DOCX output; a column's own style still wins.
-        $bodyStyle = $style->merge(Style::make()->wrap()->verticalAlign(VerticalAlign::Top));
+        // Body cells wrap and sit at the top, as table cells do in the PDF and DOCX output, unless the table or column says otherwise.
+        $bodyStyle = Style::make()->wrap()->verticalAlign(VerticalAlign::Top)->merge($style);
         $columnStyles = array_map(fn ($column): Style => $bodyStyle->merge($column->getInlineStyle()), $columns);
 
         foreach ($rows->rows() as $row) {
@@ -406,6 +414,7 @@ class OpenSpoutDriver extends AbstractDriver
             $this->rowCount = 0;
             $this->columnWidthsSet = false;
             $this->printTitlesSet = false;
+            $this->headerFrozen = false;
         }
 
         if ($sheet->getName() !== '') {
@@ -484,9 +493,9 @@ class OpenSpoutDriver extends AbstractDriver
     /**
      * Sets the sheet's column widths from the first table on it, scaled to the printable width.
      *
-     * @param list<float> $percentages
+     * Columns with Column::characters() keep that width.
      */
-    protected function applyColumnWidths(array $percentages, RenderContext $context): void
+    protected function applyColumnWidths(Table $table, RenderContext $context): void
     {
         if ($this->columnWidthsSet) {
             return;
@@ -494,9 +503,11 @@ class OpenSpoutDriver extends AbstractDriver
 
         $total = Units::mmToExcelWidth($context->settings->contentWidth());
         $sheet = $this->writer->getCurrentSheet();
+        $columns = $table->getColumns();
 
-        foreach ($percentages as $position => $percentage) {
-            $sheet->setColumnWidth(max(4, round($total * $percentage / 100, 2)), $position + 1);
+        foreach ($table->getWidthPercentages() as $position => $percentage) {
+            $width = $columns[$position]->getCharacters() ?? max(4, round($total * $percentage / 100, 2));
+            $sheet->setColumnWidth($width, $position + 1);
         }
 
         $this->columnWidthsSet = true;

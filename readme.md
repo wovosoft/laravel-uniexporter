@@ -111,6 +111,27 @@ Every export is written to a temporary file and returned as a `BinaryFileRespons
 
 Every component takes the style methods (`bold()`, `size()`, `color()`, `background()`, `center()`, `border()`, `padding()`, `spaceAfter()`, `style('named')`…) and can be limited to some formats with `visibleOn('pdf')` or `hiddenOn('xlsx')`.
 
+## Page and table layout
+
+```php
+$settings
+    ->watermark(public_path('logo.png'), alpha: 0.2, width: 80, height: 80) // PDF, centered behind every page
+    ->headerContent([Letterhead::make(), Text::make('Subject')])           // components on every page (PDF, DOCX); once on top in HTML
+    ->footerContent([...])
+    ->fitToWidth();                                                         // spreadsheets print one page wide
+
+Table::make('rows')
+    ->autoWidths()                                       // PDF/HTML size columns from their content
+    ->freezeHeader()                                     // spreadsheets keep the header row in view
+    ->headerStyle(fn () => Style::make()->align('center')->background('F5D997')->wrap(false))
+    ->columns([Column::make('name')->characters(25)]);  // spreadsheet width in characters
+```
+
+- `headerStyle()` with a closure replaces the default header style (bold, grey fill); a header style that sets an alignment centers every label, whatever the column alignment.
+- `wrap(false)` on a table or column keeps cells on one line (spreadsheets do not wrap; PDF/HTML use `white-space: nowrap`).
+- `lineHeight(1.15)` on any component or style sets the line height (PDF, HTML, DOCX).
+- The PDF grows the top/bottom margin to fit `headerContent()` / `footerContent()`.
+
 ## Per-format adjustments
 
 One schema serves every format; `on()` adjusts it for some formats only. Adjustments apply to a copy while exporting, so the schema itself never changes.

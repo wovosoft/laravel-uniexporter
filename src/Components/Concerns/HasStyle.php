@@ -127,6 +127,14 @@ trait HasStyle
         return $this->style(fn (Style $style): Style => $style->spaceAfter($millimetres));
     }
 
+    /**
+     * Line height as a multiple of the font size (e.g. 1.15).
+     */
+    public function lineHeight(float $multiple): static
+    {
+        return $this->style(fn (Style $style): Style => $style->lineHeight($multiple));
+    }
+
     public function getInlineStyle(): ?Style
     {
         return $this->inlineStyle;

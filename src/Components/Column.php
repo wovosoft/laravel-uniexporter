@@ -29,6 +29,8 @@ class Column extends Component
 
     protected ?Style $headerStyle = null;
 
+    protected ?float $characters = null;
+
     public function __construct(protected string $key = '')
     {
         $this->format = ValueFormat::text();
@@ -49,6 +51,22 @@ class Column extends Component
         $this->width = max($weight, 0.1);
 
         return $this;
+    }
+
+    /**
+     * A fixed spreadsheet column width in characters, instead of a share of the page width.
+     * Other formats keep using the weight.
+     */
+    public function characters(float $characters): static
+    {
+        $this->characters = $characters;
+
+        return $this;
+    }
+
+    public function getCharacters(): ?float
+    {
+        return $this->characters;
     }
 
     public function text(): static

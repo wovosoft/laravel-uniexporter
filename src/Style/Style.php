@@ -29,6 +29,7 @@ final class Style
         public readonly ?float $spaceBefore = null,
         public readonly ?float $spaceAfter = null,
         public readonly ?bool $wrap = null,
+        public readonly ?float $lineHeight = null,
     ) {}
 
     public static function make(): self
@@ -112,6 +113,14 @@ final class Style
     }
 
     /**
+     * Line height as a multiple of the font size (e.g. 1.15). Spreadsheets ignore it.
+     */
+    public function lineHeight(float $multiple): self
+    {
+        return $this->with(lineHeight: $multiple);
+    }
+
+    /**
      * Returns a style where every property set on `$over` replaces this one's.
      */
     public function merge(?self $over): self
@@ -136,6 +145,7 @@ final class Style
             $over->spaceBefore ?? $this->spaceBefore,
             $over->spaceAfter ?? $this->spaceAfter,
             $over->wrap ?? $this->wrap,
+            $over->lineHeight ?? $this->lineHeight,
         );
     }
 
@@ -153,6 +163,7 @@ final class Style
             strike: $this->strike,
             color: $this->color,
             align: $this->align,
+            lineHeight: $this->lineHeight,
         );
     }
 

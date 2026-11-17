@@ -63,7 +63,7 @@ class HtmlDriver extends AbstractDriver
     /**
      * Class rules not yet written; they go out just before the HTML that first uses them.
      */
-    private string $pendingCss = '';
+    protected string $pendingCss = '';
 
     /**
      * @param array<string, mixed> $options
@@ -95,11 +95,14 @@ class HtmlDriver extends AbstractDriver
                 .'<title>'.$this->escape($context->text($settings->getTitle())).'</title>'
                 .'<style>'.$this->pageCss($context).'</style></head><body><div class="ux-page">');
 
+            $this->write($this->componentsHtml($settings->getHeaderContent(), $context));
+
             foreach ($context->document->schema() as $component) {
                 $this->renderComponent($component, $context, null, false);
                 $this->flush();
             }
 
+            $this->write($this->componentsHtml($settings->getFooterContent(), $context));
             $this->write('</div></body></html>');
             $this->runCallbacks($context->document->getAfterRender('html'), $context);
         } finally {
@@ -120,6 +123,27 @@ class HtmlDriver extends AbstractDriver
             .' p, h1, h2, h3, h4, h5, h6 { margin: 0; } td, th { vertical-align: top; } thead { display: table-header-group; }'
             .' tr { page-break-inside: avoid; }'
             .' @media print { .ux-page { max-width: none; padding: 0; } }';
+    }
+
+    /**
+     * The HTML of standalone components (page header or footer content), with the CSS they need.
+     *
+     * @param list<Component> $components
+     */
+    protected function componentsHtml(array $components, RenderContext $context): string
+    {
+        $html = $this->capture(function () use ($components, $context): void {
+            foreach ($components as $component) {
+                $this->renderComponent($component, $context, null, false);
+            }
+        });
+
+        if ($this->pendingCss !== '') {
+            $html = '<style>'.$this->pendingCss.'</style>'.$html;
+            $this->pendingCss = '';
+        }
+
+        return $html;
     }
 
     protected function pageBreakHtml(): string
@@ -260,10 +284,9 @@ class HtmlDriver extends AbstractDriver
 
             $head .= '<tr>';
             foreach ($columns as $position => $column) {
-                $cellStyle = $headerStyle
-                    ->merge(Style::make()->align($column->getInlineStyle()?->align ?? Align::Left))
-                    ->merge($column->getHeaderStyle());
-                $head .= '<th'.$this->cellAttribute('width: '.round($widths[$position], 3).'%; '.$this->cellCss($cellStyle, $border, $padding)).'>'
+                $cellStyle = $this->columnHeaderStyle($style, $table, $column);
+                $width = $table->hasAutoWidths() ? '' : 'width: '.round($widths[$position], 3).'%; ';
+                $head .= '<th'.$this->cellAttribute($width.$this->cellCss($cellStyle, $border, $padding)).'>'
                     .$this->escape($context->text($column->getLabel())).'</th>';
             }
             $head .= '</tr>';
@@ -475,6 +498,9 @@ class HtmlDriver extends AbstractDriver
         if ($style->background !== null) {
             $css[] = 'background-color: #'.$style->background;
         }
+        if ($style->lineHeight !== null) {
+            $css[] = 'line-height: '.$style->lineHeight;
+        }
 
         return $css === [] ? '' : implode('; ', $css).';';
     }
@@ -501,7 +527,8 @@ class HtmlDriver extends AbstractDriver
         $css = $this->textCss($style)
             .' text-align: '.($style->align ?? Align::Left)->value.';'
             .' vertical-align: '.$this->verticalAlign($style->verticalAlign ?? VerticalAlign::Top).';'
-            .' padding: '.($style->padding ?? $padding).'mm;';
+            .' padding: '.($style->padding ?? $padding).'mm;'
+            .($style->wrap === false ? ' white-space: nowrap;' : '');
 
         $border = $style->border ?? $border;
 
@@ -528,7 +555,7 @@ class HtmlDriver extends AbstractDriver
      */
     protected function fontKey(string $family): string
     {
-        return "'".str_replace(["'", '"'], '', $family)."', serif";
+        return "'".str_replace(["'", '"'], '', $family)."', sans-serif";
     }
 
     protected function escape(string $text): string

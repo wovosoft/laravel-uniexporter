@@ -42,6 +42,10 @@ class Table extends Component
 
     protected ?Closure $rowStyler = null;
 
+    protected bool $autoWidths = false;
+
+    protected bool $freezeHeader = false;
+
     /**
      * @param string|iterable<mixed>|null $rows a data path or the rows themselves
      */
@@ -190,6 +194,37 @@ class Table extends Component
         $table->columns = $columns;
 
         return $table;
+    }
+
+    /**
+     * Lets PDF and HTML size the columns from their content instead of the column weights.
+     * Spreadsheets and DOCX keep using the weights (or Column::characters()).
+     */
+    public function autoWidths(bool $auto = true): static
+    {
+        $this->autoWidths = $auto;
+
+        return $this;
+    }
+
+    /**
+     * Keeps the header rows visible while scrolling a spreadsheet (the first frozen table on a sheet wins).
+     */
+    public function freezeHeader(bool $freeze = true): static
+    {
+        $this->freezeHeader = $freeze;
+
+        return $this;
+    }
+
+    public function hasAutoWidths(): bool
+    {
+        return $this->autoWidths;
+    }
+
+    public function shouldFreezeHeader(): bool
+    {
+        return $this->freezeHeader;
     }
 
     public function getRows(): string|iterable|null

@@ -154,15 +154,33 @@ class PhpWordDriver extends AbstractDriver
             [$settings->getFirstPageHeader(), Footer::FIRST, true],
             [$settings->getFirstPageFooter(), Footer::FIRST, false],
         ] as [$headerFooter, $type, $isHeader]) {
-            if ($headerFooter === null) {
+            $components = $type === Footer::AUTO ? ($isHeader ? $settings->getHeaderContent() : $settings->getFooterContent()) : [];
+
+            if ($headerFooter === null && $components === []) {
                 continue;
             }
 
             $container = $isHeader ? $this->section->addHeader($type) : $this->section->addFooter($type);
 
-            if (! $headerFooter->isEmpty()) {
+            if ($isHeader) {
+                $this->writeComponents($container, $components, $context);
+            }
+            if ($headerFooter !== null && ! $headerFooter->isEmpty()) {
                 $this->writeHeaderFooter($container, $headerFooter, $context);
             }
+            if (! $isHeader) {
+                $this->writeComponents($container, $components, $context);
+            }
+        }
+    }
+
+    /**
+     * @param list<Component> $components
+     */
+    protected function writeComponents(AbstractContainer $container, array $components, RenderContext $context): void
+    {
+        foreach ($components as $component) {
+            $this->renderComponent($component, $context, $container, null);
         }
     }
 
@@ -238,9 +256,7 @@ class PhpWordDriver extends AbstractDriver
 
             $wordRow = $word->addRow(null, $rowStyle);
             foreach ($columns as $position => $column) {
-                $cellStyle = $headerStyle
-                    ->merge(Style::make()->align($column->getInlineStyle()?->align ?? Align::Left))
-                    ->merge($column->getHeaderStyle());
+                $cellStyle = $this->columnHeaderStyle($style, $table, $column);
                 $this->addCellText($wordRow->addCell($cellWidth($position), $this->cellStyle($cellStyle)), $context->text($column->getLabel()), $cellStyle);
             }
         }
@@ -531,6 +547,7 @@ class PhpWordDriver extends AbstractDriver
             'spaceBefore' => Units::mmToTwip($style->spaceBefore ?? 0),
             'spaceAfter'  => Units::mmToTwip($style->spaceAfter ?? 0),
             'keepNext'    => $keepNext ?: null,
+            'lineHeight'  => $style->lineHeight,
             'shading'     => $style->background !== null ? ['fill' => $style->background] : null,
         ], fn (mixed $value): bool => $value !== null);
     }
