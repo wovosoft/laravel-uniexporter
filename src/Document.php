@@ -142,7 +142,10 @@ class Document
         return $this->afterRender[$format] ?? [];
     }
 
-    public function resolveSettings(): Settings
+    /**
+     * The document's settings after configure() callbacks, with the adjustments for `$format` when given.
+     */
+    public function resolveSettings(?string $format = null): Settings
     {
         $settings = $this->settings(new Settings());
 
@@ -150,7 +153,7 @@ class Document
             $settings = $configurator($settings) ?? $settings;
         }
 
-        return $settings;
+        return $format === null ? $settings : $settings->forFormat($format);
     }
 
     /**

@@ -86,7 +86,7 @@ class UniexporterManager
 
     public function export(Document $document, Data $data, string $format): ExportedFile
     {
-        $settings = $document->resolveSettings();
+        $settings = $document->resolveSettings($format);
         $options = array_replace_recursive($this->config['drivers'][$format] ?? [], $settings->getNative($format));
         $driver = $this->driver($format, $settings->getNative($format));
 

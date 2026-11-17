@@ -43,6 +43,8 @@ abstract class AbstractDriver implements Driver
 
     protected function renderComponent(Component $component, RenderContext $context, mixed ...$arguments): void
     {
+        $component = $component->forFormat($context->format);
+
         if (! $component->isVisibleFor($context->format)) {
             return;
         }

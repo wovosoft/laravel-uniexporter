@@ -111,6 +111,37 @@ Every export is written to a temporary file and returned as a `BinaryFileRespons
 
 Every component takes the style methods (`bold()`, `size()`, `color()`, `background()`, `center()`, `border()`, `padding()`, `spaceAfter()`, `style('named')`…) and can be limited to some formats with `visibleOn('pdf')` or `hiddenOn('xlsx')`.
 
+## Per-format adjustments
+
+One schema serves every format; `on()` adjusts it for some formats only. Adjustments apply to a copy while exporting, so the schema itself never changes.
+
+```php
+// Settings: e.g. spreadsheets without the page header and footer
+$settings->on('xlsx', fn (Settings $settings) => $settings->withoutHeader()->withoutFooter());
+
+// Any component: e.g. a data-only sheet (no header row, no internal column)
+Table::make('rows')
+    ->columns([
+        Column::make('name'),
+        Column::make('note')->on('xlsx', fn (Column $column) => $column->hiddenOn('xlsx')),
+    ])
+    ->on(['xlsx', 'html'], fn (Table $table) => $table->showHeader(false));
+```
+
+To decide at export time, adjust the document before exporting:
+
+```php
+$document = new ContactsList();
+
+if ($request->boolean('data_only')) {
+    $document->configure(fn (Settings $settings) => $settings->on('xlsx', fn (Settings $s) => $s->withoutHeader()));
+}
+
+return $document->data($data)->exportToExcel();
+```
+
+`visibleOn()` / `hiddenOn()` remain the shortcut for showing or hiding a whole component per format. Header rows set with `headerRows()` are not adjusted when columns are hidden, so set their colspans for the visible columns.
+
 ## Format-specific code
 
 - `->native('pdf', fn (string $html, Mpdf $mpdf, $context) => $html)` on a component changes its HTML; for DOCX and XLSX the callback receives the created element or the written row range.

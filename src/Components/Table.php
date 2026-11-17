@@ -165,6 +165,33 @@ class Table extends Component
         return $this;
     }
 
+    /**
+     * Applies the table's and its columns' adjustments for `$format`, and drops columns hidden in it.
+     * Header rows (headerRows()) are not adjusted, so their colspans should account for hidden columns.
+     */
+    public function forFormat(string $format): static
+    {
+        $table = parent::forFormat($format);
+        $columns = [];
+
+        foreach ($table->columns as $column) {
+            $column = $column->forFormat($format);
+
+            if ($column->isVisibleFor($format)) {
+                $columns[] = $column;
+            }
+        }
+
+        if ($columns === $table->columns) {
+            return $table;
+        }
+
+        $table = $table === $this ? clone $table : $table;
+        $table->columns = $columns;
+
+        return $table;
+    }
+
     public function getRows(): string|iterable|null
     {
         return $this->rows;

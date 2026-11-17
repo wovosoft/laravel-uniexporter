@@ -2,6 +2,7 @@
 
 namespace Wovosoft\LaravelUniexporter\Tests;
 
+use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use Wovosoft\LaravelUniexporter\Document;
 use Wovosoft\LaravelUniexporter\Drivers\Html\HtmlDriver;
@@ -86,5 +87,30 @@ abstract class TestCase extends BaseTestCase
         $zip->close();
 
         return $names;
+    }
+
+    /**
+     * @return array<string, list<list<mixed>>>
+     */
+    protected function readSheets(string $path): array
+    {
+        $reader = new XlsxReader();
+        $reader->open($path);
+        $sheets = [];
+
+        try {
+            foreach ($reader->getSheetIterator() as $sheet) {
+                foreach ($sheet->getRowIterator() as $row) {
+                    $sheets[$sheet->getName()][] = array_map(
+                        fn ($cell): mixed => $cell->getValue(),
+                        $row->cells,
+                    );
+                }
+            }
+        } finally {
+            $reader->close();
+        }
+
+        return $sheets;
     }
 }

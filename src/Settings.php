@@ -2,6 +2,7 @@
 
 namespace Wovosoft\LaravelUniexporter;
 
+use Closure;
 use Wovosoft\LaravelUniexporter\Style\Margins;
 use Wovosoft\LaravelUniexporter\Style\Orientation;
 use Wovosoft\LaravelUniexporter\Style\Paper;
@@ -43,6 +44,11 @@ final class Settings
      * @var array<string, array<string, mixed>>
      */
     private array $native = [];
+
+    /**
+     * @var array<string, list<Closure(self): (self|null)>> format => adjustments applied when exporting to it
+     */
+    private array $formatAdjustments = [];
 
     public function __construct()
     {
@@ -187,6 +193,59 @@ final class Settings
     public function native(string $format, array $options): self
     {
         $this->native[$format] = array_replace($this->native[$format] ?? [], $options);
+
+        return $this;
+    }
+
+    /**
+     * Adjusts the settings for some formats only, e.g. no page header in spreadsheets:
+     * ->on('xlsx', fn (Settings $settings) => $settings->withoutHeader()).
+     *
+     * @param string|list<string> $formats
+     * @param Closure(self): (self|null) $adjust
+     */
+    public function on(string|array $formats, Closure $adjust): self
+    {
+        foreach ((array) $formats as $format) {
+            $this->formatAdjustments[$format][] = $adjust;
+        }
+
+        return $this;
+    }
+
+    /**
+     * These settings with the adjustments for `$format` applied, leaving this instance as it is.
+     */
+    public function forFormat(string $format): self
+    {
+        $settings = clone $this;
+        $settings->formatAdjustments = [];
+
+        foreach ($this->formatAdjustments[$format] ?? [] as $adjust) {
+            $settings = $adjust($settings) ?? $settings;
+        }
+
+        return $settings;
+    }
+
+    /**
+     * Removes the page header, including the first-page one.
+     */
+    public function withoutHeader(): self
+    {
+        $this->header = null;
+        $this->firstPageHeader = null;
+
+        return $this;
+    }
+
+    /**
+     * Removes the page footer, including the first-page one.
+     */
+    public function withoutFooter(): self
+    {
+        $this->footer = null;
+        $this->firstPageFooter = null;
 
         return $this;
     }

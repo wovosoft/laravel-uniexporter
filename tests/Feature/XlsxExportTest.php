@@ -3,7 +3,6 @@
 namespace Wovosoft\LaravelUniexporter\Tests\Feature;
 
 use DateTimeInterface;
-use OpenSpout\Reader\XLSX\Reader;
 use OpenSpout\Writer\Common\Entity\Sheet;
 use OpenSpout\Writer\XLSX\Writer;
 use Wovosoft\LaravelUniexporter\Components\Column;
@@ -125,30 +124,5 @@ class XlsxExportTest extends TestCase
 
         $this->assertSame(['heading:1-1', 'native', 'table:3-4'], $calls);
         $this->assertContains('xl/sharedStrings.xml', $this->zipEntries($export->path()));
-    }
-
-    /**
-     * @return array<string, list<list<mixed>>>
-     */
-    private function readSheets(string $path): array
-    {
-        $reader = new Reader();
-        $reader->open($path);
-        $sheets = [];
-
-        try {
-            foreach ($reader->getSheetIterator() as $sheet) {
-                foreach ($sheet->getRowIterator() as $row) {
-                    $sheets[$sheet->getName()][] = array_map(
-                        fn ($cell): mixed => $cell instanceof \OpenSpout\Common\Entity\Cell\FormulaCell ? $cell->getValue() : $cell->getValue(),
-                        $row->cells,
-                    );
-                }
-            }
-        } finally {
-            $reader->close();
-        }
-
-        return $sheets;
     }
 }

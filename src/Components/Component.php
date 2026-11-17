@@ -30,6 +30,11 @@ abstract class Component
      */
     protected array $nativeCallbacks = [];
 
+    /**
+     * @var array<string, list<Closure(static): (static|null)>> format => adjustments applied when exporting to it
+     */
+    protected array $formatAdjustments = [];
+
     public static function make(mixed ...$arguments): static
     {
         return new static(...$arguments);
@@ -59,6 +64,41 @@ abstract class Component
         }
 
         return $this->visibleOn === null || in_array($format, $this->visibleOn, true);
+    }
+
+    /**
+     * Adjusts the component for some formats only, on a copy, e.g. a table without its header row in
+     * spreadsheets: ->on('xlsx', fn (Table $table) => $table->showHeader(false)).
+     *
+     * @param string|list<string> $formats
+     * @param Closure(static): (static|null) $adjust
+     */
+    public function on(string|array $formats, Closure $adjust): static
+    {
+        foreach ((array) $formats as $format) {
+            $this->formatAdjustments[$format][] = $adjust;
+        }
+
+        return $this;
+    }
+
+    /**
+     * The component as rendered in `$format`: itself, or an adjusted copy when on() targets the format.
+     */
+    public function forFormat(string $format): static
+    {
+        if (empty($this->formatAdjustments[$format])) {
+            return $this;
+        }
+
+        $component = clone $this;
+        $component->formatAdjustments = [];
+
+        foreach ($this->formatAdjustments[$format] as $adjust) {
+            $component = $adjust($component) ?? $component;
+        }
+
+        return $component;
     }
 
     /**
