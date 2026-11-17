@@ -27,6 +27,7 @@ use OpenSpout\Writer\XLSX\Options\PageSetup;
 use OpenSpout\Writer\XLSX\Options\PaperSize;
 use OpenSpout\Writer\XLSX\Properties;
 use OpenSpout\Writer\XLSX\Writer;
+use Wovosoft\LaravelUniexporter\Components\Column;
 use Wovosoft\LaravelUniexporter\Components\Columns;
 use Wovosoft\LaravelUniexporter\Components\Component;
 use Wovosoft\LaravelUniexporter\Components\Divider;
@@ -51,6 +52,7 @@ use Wovosoft\LaravelUniexporter\Style\BorderLine;
 use Wovosoft\LaravelUniexporter\Style\Paper;
 use Wovosoft\LaravelUniexporter\Style\Style;
 use Wovosoft\LaravelUniexporter\Style\VerticalAlign;
+use Wovosoft\LaravelUniexporter\Support\TableHeader;
 use Wovosoft\LaravelUniexporter\Support\TableRows;
 use Wovosoft\LaravelUniexporter\Support\Units;
 
@@ -221,29 +223,39 @@ class OpenSpoutDriver extends AbstractDriver
         if ($table->shouldShowHeader()) {
             $headerFrom = $this->rowCount + 1;
 
-            foreach ($table->getHeaderRows() as $headerRow) {
-                $cells = [];
-                $position = 0;
-                foreach ($headerRow as $cell) {
-                    $cellStyle = $this->spoutStyle($this->headerCellStyle($cell, $headerStyle, $context), $border);
-                    $cells[$position] = new StringCell($context->text($cell->getText()), $cellStyle);
-                    for ($extra = 1; $extra < $cell->getColspan(); $extra++) {
-                        $cells[$position + $extra] = new EmptyCell(null, $cellStyle);
-                    }
-                    if ($cell->getColspan() > 1) {
-                        $this->merge($position, $position + $cell->getColspan() - 1, $this->rowCount + 1);
-                    }
-                    $position += $cell->getColspan();
-                }
-                $this->addRow($cells);
-            }
+            $header = TableHeader::of($table);
+            $coverStyles = [];
 
-            $labels = [];
-            foreach ($columns as $column) {
-                $cellStyle = $this->columnHeaderStyle($style, $table, $column, Style::make()->wrap());
-                $labels[] = new StringCell($context->text($column->getLabel()), $this->spoutStyle($cellStyle, $border));
+            foreach ($header->rows as $r => $entries) {
+                $cells = [];
+                $sheetRow = $this->rowCount + 1;
+
+                foreach ($entries as ['cell' => $cell, 'position' => $position, 'colspan' => $colspan, 'rowspan' => $rowspan]) {
+                    $isLabel = $cell instanceof Column;
+                    $cellStyle = $this->spoutStyle($isLabel
+                        ? $this->columnHeaderStyle($style, $table, $cell, Style::make()->wrap())
+                        : $this->headerCellStyle($cell, $headerStyle, $context)->merge(Style::make()->wrap()), $border);
+                    $cells[$position] = new StringCell($context->text($isLabel ? $cell->getLabel() : $cell->getText()), $cellStyle);
+
+                    // Cells under a span stay empty but keep the style, so borders and fill run across the merge.
+                    for ($x = $position; $x < $position + $colspan; $x++) {
+                        $coverStyles[$x] = $cellStyle;
+                        if ($x > $position) {
+                            $cells[$x] = new EmptyCell(null, $cellStyle);
+                        }
+                    }
+                    if ($colspan > 1 || $rowspan > 1) {
+                        $this->mergeRange($position, $sheetRow, $position + $colspan - 1, $sheetRow + $rowspan - 1);
+                    }
+                }
+
+                foreach ($header->covered[$r] as $position) {
+                    $cells[$position] = new EmptyCell(null, $coverStyles[$position] ?? null);
+                }
+
+                ksort($cells);
+                $this->addRow($this->fillGaps($cells));
             }
-            $this->addRow($labels);
 
             if ($table->shouldRepeatHeader() && ! $this->printTitlesSet) {
                 $this->writer->getCurrentSheet()->setPrintTitleRows('$'.$headerFrom.':$'.$this->rowCount);
@@ -263,9 +275,16 @@ class OpenSpoutDriver extends AbstractDriver
         foreach ($rows->rows() as $row) {
             $stripe = $table->getStripeColor() !== null && $row->index % 2 === 1 ? Style::make()->background($table->getStripeColor()) : null;
             $cells = [];
+            $sheetRow = $this->rowCount + 1;
             foreach ($columns as $position => $column) {
                 $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->style);
-                $cells[] = $this->valueCell($row->values[$position], $row->texts[$position], $column->getFormat(), $cellStyle, $border);
+                $span = $row->span($position);
+                $cells[] = $span === 0
+                    ? new EmptyCell(null, $this->spoutStyle($cellStyle, $border))
+                    : $this->valueCell($row->values[$position], $row->texts[$position], $column->getFormat(), $cellStyle, $border);
+                if ($span > 1) {
+                    $this->mergeRange($position, $sheetRow, $position, $sheetRow + $span - 1);
+                }
             }
             $this->addRow($cells);
         }
@@ -472,6 +491,32 @@ class OpenSpoutDriver extends AbstractDriver
     protected function merge(int $fromColumn, int $toColumn, int $row): void
     {
         $this->spoutOptions->mergeCells($fromColumn, $row, $toColumn, $row, $this->sheetIndex);
+    }
+
+    /**
+     * Merges a rectangle of cells (0-based columns, 1-based rows) on the current sheet.
+     */
+    protected function mergeRange(int $fromColumn, int $fromRow, int $toColumn, int $toRow): void
+    {
+        $this->spoutOptions->mergeCells($fromColumn, $fromRow, $toColumn, $toRow, $this->sheetIndex);
+    }
+
+    /**
+     * @param array<int, Cell> $cells keyed by column position
+     * @return list<Cell> with empty cells in any gaps
+     */
+    protected function fillGaps(array $cells): array
+    {
+        if ($cells === []) {
+            return [];
+        }
+
+        $filled = [];
+        for ($position = 0, $last = max(array_keys($cells)); $position <= $last; $position++) {
+            $filled[] = $cells[$position] ?? new EmptyCell(null, null);
+        }
+
+        return $filled;
     }
 
     /**

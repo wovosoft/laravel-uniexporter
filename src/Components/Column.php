@@ -31,6 +31,8 @@ class Column extends Component
 
     protected ?float $characters = null;
 
+    protected bool $fromSubRow = false;
+
     public function __construct(protected string $key = '')
     {
         $this->format = ValueFormat::text();
@@ -62,6 +64,21 @@ class Column extends Component
         $this->characters = $characters;
 
         return $this;
+    }
+
+    /**
+     * Reads the value from the sub-row item instead of the row (see Table::subRows()).
+     */
+    public function fromSubRow(bool $fromSubRow = true): static
+    {
+        $this->fromSubRow = $fromSubRow;
+
+        return $this;
+    }
+
+    public function isFromSubRow(): bool
+    {
+        return $this->fromSubRow;
     }
 
     public function getCharacters(): ?float

@@ -3,6 +3,7 @@
 namespace Wovosoft\LaravelUniexporter\Drivers\Html;
 
 use RuntimeException;
+use Wovosoft\LaravelUniexporter\Components\Column;
 use Wovosoft\LaravelUniexporter\Components\Columns;
 use Wovosoft\LaravelUniexporter\Components\Component;
 use Wovosoft\LaravelUniexporter\Components\Divider;
@@ -24,6 +25,7 @@ use Wovosoft\LaravelUniexporter\Style\Align;
 use Wovosoft\LaravelUniexporter\Style\Border;
 use Wovosoft\LaravelUniexporter\Style\Style;
 use Wovosoft\LaravelUniexporter\Style\VerticalAlign;
+use Wovosoft\LaravelUniexporter\Support\TableHeader;
 use Wovosoft\LaravelUniexporter\Support\TableRows;
 
 /**
@@ -272,24 +274,19 @@ class HtmlDriver extends AbstractDriver
         $head = '';
 
         if ($table->shouldShowHeader()) {
-            foreach ($table->getHeaderRows() as $headerRow) {
+            foreach (TableHeader::of($table)->rows as $entries) {
                 $head .= '<tr>';
-                foreach ($headerRow as $cell) {
-                    $cellStyle = $this->headerCellStyle($cell, $headerStyle, $context);
-                    $head .= '<th colspan="'.$cell->getColspan().'"'.$this->cellAttribute($this->cellCss($cellStyle, $border, $padding)).'>'
-                        .$this->escape($context->text($cell->getText())).'</th>';
+                foreach ($entries as ['cell' => $cell, 'position' => $position, 'colspan' => $colspan, 'rowspan' => $rowspan]) {
+                    $isLabel = $cell instanceof Column;
+                    $cellStyle = $isLabel ? $this->columnHeaderStyle($style, $table, $cell) : $this->headerCellStyle($cell, $headerStyle, $context);
+                    // Widths go on cells that cover exactly one column, so spanning group labels don't fight them.
+                    $width = $table->hasAutoWidths() || $colspan > 1 ? '' : 'width: '.round($widths[$position], 3).'%; ';
+                    $head .= '<th'.($colspan > 1 ? ' colspan="'.$colspan.'"' : '').($rowspan > 1 ? ' rowspan="'.$rowspan.'"' : '')
+                        .$this->cellAttribute($width.$this->cellCss($cellStyle, $border, $padding)).'>'
+                        .$this->escape($context->text($isLabel ? $cell->getLabel() : $cell->getText())).'</th>';
                 }
                 $head .= '</tr>';
             }
-
-            $head .= '<tr>';
-            foreach ($columns as $position => $column) {
-                $cellStyle = $this->columnHeaderStyle($style, $table, $column);
-                $width = $table->hasAutoWidths() ? '' : 'width: '.round($widths[$position], 3).'%; ';
-                $head .= '<th'.$this->cellAttribute($width.$this->cellCss($cellStyle, $border, $padding)).'>'
-                    .$this->escape($context->text($column->getLabel())).'</th>';
-            }
-            $head .= '</tr>';
         }
 
         $body = '';
@@ -299,8 +296,11 @@ class HtmlDriver extends AbstractDriver
             $stripe = $table->getStripeColor() !== null && $row->index % 2 === 1 ? Style::make()->background($table->getStripeColor()) : null;
             $body .= '<tr>';
             foreach ($row->texts as $position => $text) {
+                if (($span = $row->span($position)) === 0) {
+                    continue;
+                }
                 $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->style);
-                $body .= '<td'.$this->cellAttribute($this->cellCss($cellStyle, $border, $padding)).'>'.$this->escape($text).'</td>';
+                $body .= '<td'.($span > 1 ? ' rowspan="'.$span.'"' : '').$this->cellAttribute($this->cellCss($cellStyle, $border, $padding)).'>'.$this->escape($text).'</td>';
             }
             $body .= '</tr>';
         }

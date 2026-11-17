@@ -21,36 +21,73 @@ final class TableRows
     public function __construct(private readonly Table $table, private readonly Data $data) {}
 
     /**
+     * The table's rows; with Table::subRows() each row yields one TableRow per sub-row.
+     *
      * @return Generator<int, TableRow>
      */
     public function rows(): Generator
     {
         $columns = $this->table->getColumns();
         $styler = $this->table->getRowStyler();
+        $subRowSource = $this->table->getSubRows();
         $index = 0;
 
         foreach ($this->data->iterable($this->table->getRows()) as $source) {
-            $values = [];
-            $texts = [];
+            $style = $styler ? $styler($source, $index) : null;
+            $subItems = $subRowSource === null ? [null] : $this->subItems($subRowSource, $source, $index);
+            $span = count($subItems);
 
-            foreach ($columns as $position => $column) {
-                $value = $column->valueFor($source, $index, $this->data);
-                $text = $column->getFormat()->toText($value);
+            foreach ($subItems as $subRow => $subItem) {
+                $values = [];
+                $texts = [];
+                $spans = [];
 
-                $values[] = $value;
-                $texts[] = $text === '' ? $column->getEmptyValue() : $text;
+                foreach ($columns as $position => $column) {
+                    $fromSubRow = $subRowSource !== null && $column->isFromSubRow();
 
-                if ($column->hasTotal() && is_numeric($value)) {
-                    $this->totals[$position] = ($this->totals[$position] ?? 0) + $value;
+                    if (! $fromSubRow && $subRow > 0) {
+                        $values[] = null;
+                        $texts[] = '';
+                        $spans[$position] = 0;
+
+                        continue;
+                    }
+
+                    $value = $fromSubRow
+                        ? ($subItem === null ? null : $column->valueFor($subItem, $index, $this->data))
+                        : $column->valueFor($source, $index, $this->data);
+                    $text = $column->getFormat()->toText($value);
+
+                    $values[] = $value;
+                    $texts[] = $text === '' ? $column->getEmptyValue() : $text;
+
+                    if (! $fromSubRow && $span > 1) {
+                        $spans[$position] = $span;
+                    }
+
+                    if ($column->hasTotal() && is_numeric($value)) {
+                        $this->totals[$position] = ($this->totals[$position] ?? 0) + $value;
+                    }
                 }
-            }
 
-            yield new TableRow($index, $source, $values, $texts, $styler ? $styler($source, $index) : null);
+                yield new TableRow($index, $source, $values, $texts, $style, $spans, $subRow);
+            }
 
             $index++;
         }
 
         $this->count = $index;
+    }
+
+    /**
+     * @return list<mixed> at least one item (null when the row has none)
+     */
+    private function subItems(string|\Closure $source, mixed $row, int $index): array
+    {
+        $items = is_string($source) ? data_get($row, $source) : $source($row, $index);
+        $items = is_iterable($items) ? [...$items] : [];
+
+        return $items === [] ? [null] : array_values($items);
     }
 
     /**

@@ -44,6 +44,8 @@ class Table extends Component
 
     protected bool $autoWidths = false;
 
+    protected string|Closure|null $subRows = null;
+
     protected bool $freezeHeader = false;
 
     /**
@@ -194,6 +196,25 @@ class Table extends Component
         $table->columns = $columns;
 
         return $table;
+    }
+
+    /**
+     * Splits each row into sub-rows, one per item of `$source` (a dot path into the row, or a closure
+     * receiving the row and its index). Columns marked fromSubRow() read the sub-row item; the other
+     * columns are written once and span the row's sub-rows. A row without items gets one sub-row.
+     *
+     * @param string|Closure(mixed $row, int $index): iterable<mixed> $source
+     */
+    public function subRows(string|Closure $source): static
+    {
+        $this->subRows = $source;
+
+        return $this;
+    }
+
+    public function getSubRows(): string|Closure|null
+    {
+        return $this->subRows;
     }
 
     /**

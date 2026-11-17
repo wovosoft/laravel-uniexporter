@@ -9,6 +9,7 @@ use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 use Wovosoft\LaravelUniexporter\Components\Component;
 use Wovosoft\LaravelUniexporter\Components\Native;
+use Wovosoft\LaravelUniexporter\Components\Table;
 use Wovosoft\LaravelUniexporter\Drivers\Html\HtmlDriver;
 use Wovosoft\LaravelUniexporter\Drivers\RenderContext;
 use Wovosoft\LaravelUniexporter\HeaderFooter;
@@ -106,7 +107,8 @@ class MpdfDriver extends HtmlDriver
             'fontdata'             => array_replace($fontData, (array) ($this->options['font_data'] ?? [])),
             // Keep the sizes the schema asks for instead of silently shrinking wide tables.
             'shrink_tables_to_fit' => 0,
-            'packTableData'        => true,
+            // Saves memory on large tables, but mPDF's border pass breaks on rowspans when it is on.
+            'packTableData'        => ! $this->hasSpannedTables($context->document->schema()),
         ];
 
         // Component headers/footers have a height only known once rendered: grow the margins to fit them.
@@ -124,6 +126,33 @@ class MpdfDriver extends HtmlDriver
         }
 
         return array_replace($config, (array) ($this->options['config'] ?? []));
+    }
+
+    /**
+     * @param list<Component> $components
+     */
+    protected function hasSpannedTables(array $components): bool
+    {
+        foreach ($components as $component) {
+            if ($component instanceof Table) {
+                if ($component->getSubRows() !== null) {
+                    return true;
+                }
+                foreach ($component->getHeaderRows() as $headerRow) {
+                    foreach ($headerRow as $cell) {
+                        if ($cell->getRowspan() > 1) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            if ($this->hasSpannedTables($component->getChildren())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function pageBreakHtml(): string

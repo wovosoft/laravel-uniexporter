@@ -13,6 +13,7 @@ use PhpOffice\PhpWord\SimpleType\TblWidth;
 use PhpOffice\PhpWord\SimpleType\VerticalJc;
 use PhpOffice\PhpWord\Style\ListItem;
 use PhpOffice\PhpWord\Style\Table as TableStyle;
+use Wovosoft\LaravelUniexporter\Components\Column;
 use Wovosoft\LaravelUniexporter\Components\Columns;
 use Wovosoft\LaravelUniexporter\Components\Component;
 use Wovosoft\LaravelUniexporter\Components\Divider;
@@ -35,6 +36,7 @@ use Wovosoft\LaravelUniexporter\Style\Border;
 use Wovosoft\LaravelUniexporter\Style\BorderLine;
 use Wovosoft\LaravelUniexporter\Style\Style;
 use Wovosoft\LaravelUniexporter\Style\VerticalAlign;
+use Wovosoft\LaravelUniexporter\Support\TableHeader;
 use Wovosoft\LaravelUniexporter\Support\TableRows;
 use Wovosoft\LaravelUniexporter\Support\Units;
 
@@ -242,22 +244,33 @@ class PhpWordDriver extends AbstractDriver
         if ($table->shouldShowHeader()) {
             $rowStyle = ['tblHeader' => $table->shouldRepeatHeader(), 'cantSplit' => true];
 
-            foreach ($table->getHeaderRows() as $headerRow) {
-                $wordRow = $word->addRow(null, $rowStyle);
-                $position = 0;
-                foreach ($headerRow as $cell) {
-                    $span = $cell->getColspan();
-                    $width = array_sum(array_map($cellWidth, range($position, min($position + $span, count($columns)) - 1)));
-                    $this->addCellText($wordRow->addCell($width, $this->cellStyle($this->headerCellStyle($cell, $headerStyle, $context), $span)),
-                        $context->text($cell->getText()), $this->headerCellStyle($cell, $headerStyle, $context));
-                    $position += $span;
-                }
-            }
+            $header = TableHeader::of($table);
+            // Word merges vertically with a "restart" cell and "continue" cells below it, one per covered row.
+            $continuations = [];
 
-            $wordRow = $word->addRow(null, $rowStyle);
-            foreach ($columns as $position => $column) {
-                $cellStyle = $this->columnHeaderStyle($style, $table, $column);
-                $this->addCellText($wordRow->addCell($cellWidth($position), $this->cellStyle($cellStyle)), $context->text($column->getLabel()), $cellStyle);
+            foreach ($header->rows as $r => $entries) {
+                $wordRow = $word->addRow(null, $rowStyle);
+                $cells = [];
+
+                foreach ($entries as ['cell' => $cell, 'position' => $position, 'colspan' => $colspan, 'rowspan' => $rowspan]) {
+                    $cellStyle = $cell instanceof Column ? $this->columnHeaderStyle($style, $table, $cell) : $this->headerCellStyle($cell, $headerStyle, $context);
+                    $cells[$position] = [$cell instanceof Column ? $cell->getLabel() : $cell->getText(), $cellStyle, $colspan, $rowspan > 1 ? 'restart' : null];
+                    for ($y = $r + 1; $y < $r + $rowspan; $y++) {
+                        $continuations[$y][$position] = [$cellStyle, $colspan];
+                    }
+                }
+                foreach ($continuations[$r] ?? [] as $position => [$cellStyle, $colspan]) {
+                    $cells[$position] = [null, $cellStyle, $colspan, 'continue'];
+                }
+
+                ksort($cells);
+                foreach ($cells as $position => [$text, $cellStyle, $colspan, $vMerge]) {
+                    $width = array_sum(array_map($cellWidth, range($position, min($position + $colspan, count($columns)) - 1)));
+                    $wordCell = $wordRow->addCell($width, $this->cellStyle($cellStyle, $colspan, $vMerge));
+                    if ($text !== null) {
+                        $this->addCellText($wordCell, $context->text($text), $cellStyle);
+                    }
+                }
             }
         }
 
@@ -268,7 +281,15 @@ class PhpWordDriver extends AbstractDriver
             $wordRow = $word->addRow(null, ['cantSplit' => true]);
             foreach ($row->texts as $position => $text) {
                 $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->style);
-                $this->addCellText($wordRow->addCell($cellWidth($position), $this->cellStyle($cellStyle)), $text, $cellStyle);
+                $span = $row->span($position);
+                $wordCell = $wordRow->addCell($cellWidth($position), $this->cellStyle($cellStyle, vMerge: match (true) {
+                    $span === 0 => 'continue',
+                    $span > 1   => 'restart',
+                    default     => null,
+                }));
+                if ($span !== 0) {
+                    $this->addCellText($wordCell, $text, $cellStyle);
+                }
             }
         }
 
@@ -496,7 +517,10 @@ class PhpWordDriver extends AbstractDriver
     /**
      * @return array<string, mixed>
      */
-    protected function cellStyle(Style $style, int $span = 1): array
+    /**
+     * @param 'restart'|'continue'|null $vMerge vertical merge: the first cell of a merge, or a cell it covers
+     */
+    protected function cellStyle(Style $style, int $span = 1, ?string $vMerge = null): array
     {
         $cell = [
             'unit'   => TblWidth::PERCENT,
@@ -509,6 +533,9 @@ class PhpWordDriver extends AbstractDriver
 
         if ($span > 1) {
             $cell['gridSpan'] = $span;
+        }
+        if ($vMerge !== null) {
+            $cell['vMerge'] = $vMerge;
         }
         if ($style->background !== null) {
             $cell['bgColor'] = $style->background;
