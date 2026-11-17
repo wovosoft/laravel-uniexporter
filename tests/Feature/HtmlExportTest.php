@@ -51,6 +51,19 @@ class HtmlExportTest extends TestCase
         $this->assertLessThan(40, count(array_unique($used[1])), 'Rows reuse a handful of classes.');
     }
 
+    public function test_font_faces_are_declared_from_the_driver_options(): void
+    {
+        $manager = $this->manager(['drivers' => ['html' => ['font_faces' => [
+            'Kalpurush' => 'https://example.com/fonts/kalpurush.ttf',
+            'Nikosh'    => ['src' => '/fonts/Nikosh.woff2', 'weight' => 'bold'],
+        ]]]]);
+
+        $html = $this->export(Document::make()->components([Text::make('x')]), [], 'html', $manager)->contents();
+
+        $this->assertStringContainsString("@font-face { font-family: 'Kalpurush'; src: url('https://example.com/fonts/kalpurush.ttf') format('truetype'); font-weight: normal;", $html);
+        $this->assertStringContainsString("src: url('/fonts/Nikosh.woff2') format('woff2'); font-weight: bold;", $html);
+    }
+
     public function test_native_hooks_receive_the_html(): void
     {
         $document = Document::make()->components([

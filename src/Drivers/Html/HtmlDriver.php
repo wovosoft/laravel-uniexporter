@@ -39,7 +39,8 @@ use Wovosoft\LaravelUniexporter\Support\TableRows;
  * Native callbacks: a component's ->native('html', fn (string $html, RenderContext $context): ?string)
  * may return replacement HTML. Native components get (RenderContext $context) and return HTML.
  *
- * Driver options: 'html_listener' (a callable receiving each HTML chunk, for debugging and tests).
+ * Driver options: 'font_faces' (family => font URL, written as @font-face rules so readers need not
+ * have the font installed) and 'html_listener' (a callable receiving each HTML chunk, for debugging and tests).
  */
 class HtmlDriver extends AbstractDriver
 {
@@ -119,7 +120,8 @@ class HtmlDriver extends AbstractDriver
         $margins = $settings->getMargins();
         $paper = $settings->getPaper()->value.($settings->isLandscape() ? ' landscape' : ' portrait');
 
-        return '@page { size: '.$paper.'; margin: '.$margins->top.'mm '.$margins->right.'mm '.$margins->bottom.'mm '.$margins->left.'mm; }'
+        return $this->fontFaceCss()
+            .'@page { size: '.$paper.'; margin: '.$margins->top.'mm '.$margins->right.'mm '.$margins->bottom.'mm '.$margins->left.'mm; }'
             .' body { margin: 0; background: #fff; color: #000; '.$this->textCss($settings->getDefaultStyle()).' }'
             .' .ux-page { max-width: 1200px; margin: 0 auto; padding: 8mm 4mm; }'
             .' p, h1, h2, h3, h4, h5, h6 { margin: 0; } td, th { vertical-align: top; } thead { display: table-header-group; }'
@@ -146,6 +148,34 @@ class HtmlDriver extends AbstractDriver
         }
 
         return $html;
+    }
+
+    /**
+     * @font-face rules from the 'font_faces' option: family => URL, or family => ['src' => URL, 'weight' => '400', 'style' => 'normal'].
+     */
+    protected function fontFaceCss(): string
+    {
+        $css = '';
+
+        foreach ((array) ($this->options['font_faces'] ?? []) as $family => $face) {
+            $face = is_array($face) ? $face : ['src' => $face];
+            $src = (string) ($face['src'] ?? '');
+
+            if ($src === '') {
+                continue;
+            }
+
+            $format = match (strtolower(pathinfo(parse_url($src, PHP_URL_PATH) ?: $src, PATHINFO_EXTENSION))) {
+                'woff2' => 'woff2',
+                'woff'  => 'woff',
+                'otf'   => 'opentype',
+                default => 'truetype',
+            };
+            $css .= "@font-face { font-family: '".str_replace(["'", '"'], '', (string) $family)."'; src: url('".str_replace(["'", ')'], ['%27', '%29'], $src)."') format('".$format."');"
+                .' font-weight: '.($face['weight'] ?? 'normal').'; font-style: '.($face['style'] ?? 'normal').'; font-display: swap; } ';
+        }
+
+        return $css;
     }
 
     protected function pageBreakHtml(): string
