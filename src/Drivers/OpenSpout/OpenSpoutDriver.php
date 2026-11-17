@@ -743,7 +743,11 @@ class OpenSpoutDriver extends AbstractDriver
         };
 
         foreach ($components as $component) {
-            if ($component instanceof Sheet && $component->isVisibleFor($context->format)) {
+            if (! $component->isVisibleFor($context->format)) {
+                continue;
+            }
+
+            if ($component instanceof Sheet) {
                 if ($hasRows) {
                     $spans[++$section] = 1;
                 }

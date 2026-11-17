@@ -8,6 +8,7 @@ use OpenSpout\Writer\XLSX\Writer;
 use Wovosoft\LaravelUniexporter\Components\Column;
 use Wovosoft\LaravelUniexporter\Components\Heading;
 use Wovosoft\LaravelUniexporter\Components\Native;
+use Wovosoft\LaravelUniexporter\Components\Sheet as ComponentSheet;
 use Wovosoft\LaravelUniexporter\Components\Table;
 use Wovosoft\LaravelUniexporter\Document;
 use Wovosoft\LaravelUniexporter\Settings;
@@ -67,6 +68,23 @@ class XlsxExportTest extends TestCase
         $this->assertStringContainsString('FreeSerif', $styles);
 
         $this->assertNotEmpty(array_filter($this->zipEntries($export->path()), fn (string $name): bool => str_starts_with($name, 'xl/media/')));
+    }
+
+    public function test_headings_span_their_own_sheet_when_hidden_content_precedes_the_first_sheet(): void
+    {
+        $document = Document::make()->components([
+            Heading::make('Only in PDF')->hiddenOn('xlsx'),
+            ComponentSheet::make('Narrow'),
+            Table::make('rows')->columns([Column::make('a'), Column::make('b')]),
+            ComponentSheet::make('Wide'),
+            Heading::make('Across'),
+            Table::make('rows')->columns([Column::make('a'), Column::make('b'), Column::make('c'), Column::make('d')]),
+        ]);
+
+        $export = $this->export($document, ['rows' => [['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]]], 'xlsx');
+
+        $this->assertSame(['Narrow', 'Wide'], array_keys($this->readSheets($export->path())));
+        $this->assertStringContainsString('<mergeCell ref="A1:D1"/>', $this->zipEntry($export->path(), 'xl/worksheets/sheet2.xml'));
     }
 
     public function test_table_cells_wrap_at_the_top_like_the_other_formats(): void
