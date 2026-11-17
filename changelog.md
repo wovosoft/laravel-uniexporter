@@ -2,7 +2,7 @@
 
 All notable changes to `laravel-uniexporter` are documented in this file.
 
-## Unreleased
+## 1.0.0 - 2026-11-17
 
 ### Added
 - Document schema with components: headings, text and runs, links, images, lists, key/value pairs, tables, side-by-side columns, groups, spacers, dividers, page breaks, sheets and native content.
