@@ -85,6 +85,14 @@ Driver options: `options` (named arguments for `OpenSpout\Writer\XLSX\Options`, 
 
 Driver options: `html_listener` (a callable receiving each HTML chunk).
 
+## CSV (`csv`, OpenSpout)
+
+- Data only: each table writes its column labels, rows and totals, with a blank line between tables. Headings, text, images and page setup are left out; header rows above the labels are not written.
+- Numbers stay plain numbers (no thousands separators); dates and other values are their display text.
+- Text that a spreadsheet would read as a formula (starting with `=`, `+`, `-` or `@`) is prefixed with an apostrophe.
+- Hide or adjust columns with `hiddenOn('csv')` and `on('csv', ...)`. Options: `drivers.csv.options` (named arguments for `OpenSpout\Writer\CSV\Options`, e.g. `'FIELD_DELIMITER' => ';'`).
+- `exportToCsv()` is a shortcut for `export('csv')`.
+
 ## Choosing a response per format
 
 ```php

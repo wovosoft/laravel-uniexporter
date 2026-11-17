@@ -1,6 +1,6 @@
 # Laravel Uniexporter
 
-Describe a document once as a schema of components, then export it to PDF, DOCX, XLSX or HTML. Each format is a driver, so you can replace one or add your own.
+Describe a document once as a schema of components, then export it to PDF, DOCX, XLSX, HTML or CSV. Each format is a driver, so you can replace one or add your own.
 
 | Format | Default driver | Library (install it yourself) |
 |--------|----------------|-------------------------------|
@@ -8,6 +8,7 @@ Describe a document once as a schema of components, then export it to PDF, DOCX,
 | `docx` | `PhpWordDriver`  | `phpoffice/phpword` ^1.2 |
 | `xlsx` | `OpenSpoutDriver`| `openspout/openspout` ^5.0 |
 | `html` | `HtmlDriver`     | none |
+| `csv`  | `CsvDriver`      | `openspout/openspout` ^5.0 (table data only) |
 
 The HTML driver writes a standalone page (images embedded, table cell styles as shared classes) for viewing or printing in a browser. It is also the markup base of the PDF driver, so PDF and HTML render the same schema the same way. Page headers and footers are PDF/DOCX/XLSX only.
 
@@ -193,7 +194,7 @@ Set `UNIEXPORTER_STRICT=true` (for example in tests) to throw when a driver cann
 Implement `Wovosoft\LaravelUniexporter\Drivers\Driver` (`extension()`, `mimeType()`, `render(RenderContext $context, string $path)`), or extend `AbstractDriver` to get a `render{Component}()` dispatch, then register it:
 
 ```php
-Uniexporter::extend('csv', CsvDriver::class);
+Uniexporter::extend('tsv', TsvDriver::class);
 ```
 
 ## Testing

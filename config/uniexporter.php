@@ -1,5 +1,6 @@
 <?php
 
+use Wovosoft\LaravelUniexporter\Drivers\Csv\CsvDriver;
 use Wovosoft\LaravelUniexporter\Drivers\Html\HtmlDriver;
 use Wovosoft\LaravelUniexporter\Drivers\Mpdf\MpdfDriver;
 use Wovosoft\LaravelUniexporter\Drivers\OpenSpout\OpenSpoutDriver;
@@ -23,6 +24,7 @@ return [
         'docx' => PhpWordDriver::class,
         'xlsx' => OpenSpoutDriver::class,
         'html' => HtmlDriver::class,
+        'csv'  => CsvDriver::class,
     ],
 
     /*
@@ -72,6 +74,10 @@ return [
         'html' => [],
         'xlsx' => [
             // Named arguments for OpenSpout\Writer\XLSX\Options (e.g. 'SHOULD_USE_INLINE_STRINGS' => false).
+            'options' => [],
+        ],
+        'csv' => [
+            // Named arguments for OpenSpout\Writer\CSV\Options (e.g. 'FIELD_DELIMITER' => ';').
             'options' => [],
         ],
     ],

@@ -94,13 +94,13 @@ use Wovosoft\LaravelUniexporter\Drivers\AbstractDriver;
 use Wovosoft\LaravelUniexporter\Drivers\RenderContext;
 use Wovosoft\LaravelUniexporter\Support\TableRows;
 
-class CsvDriver extends AbstractDriver
+class TsvDriver extends AbstractDriver
 {
     public function __construct(private readonly array $options = []) {}
 
-    public function extension(): string { return 'csv'; }
+    public function extension(): string { return 'tsv'; }
 
-    public function mimeType(): string { return 'text/csv'; }
+    public function mimeType(): string { return 'text/tab-separated-values'; }
 
     public function render(RenderContext $context, string $path): void
     {
@@ -114,9 +114,9 @@ class CsvDriver extends AbstractDriver
     protected function renderTable(Table $table, RenderContext $context, $file): void
     {
         $rows = new TableRows($table, $context->data);
-        fputcsv($file, array_map(fn ($column) => $context->text($column->getLabel()), $table->getColumns()));
+        fputcsv($file, array_map(fn ($column) => $context->text($column->getLabel()), $table->getColumns()), "\t");
         foreach ($rows->rows() as $row) {
-            fputcsv($file, $row->texts);
+            fputcsv($file, $row->texts, "\t");
         }
     }
 }
@@ -124,12 +124,12 @@ class CsvDriver extends AbstractDriver
 
 `renderComponent()` applies the component's per-format adjustments and visibility before dispatching. `Support\TableRows` gives table rows with formatted texts, typed values, row styles and totals.
 
-Register the driver in `config/uniexporter.php` (`'formats' => ['csv' => CsvDriver::class]`) or at boot:
+Register the driver in `config/uniexporter.php` (`'formats' => ['tsv' => TsvDriver::class]`) or at boot:
 
 ```php
 use Wovosoft\LaravelUniexporter\Facades\Uniexporter;
 
-Uniexporter::extend('csv', CsvDriver::class);
+Uniexporter::extend('tsv', TsvDriver::class);
 Uniexporter::extend('pdf', fn (array $options, $manager) => new MyPdfDriver($options));   // replace a driver
 ```
 

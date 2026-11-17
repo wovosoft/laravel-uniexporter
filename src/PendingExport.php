@@ -38,6 +38,11 @@ final class PendingExport
         return $this->export('xlsx');
     }
 
+    public function exportToCsv(): ExportedFile
+    {
+        return $this->export('csv');
+    }
+
     public function export(string $format): ExportedFile
     {
         return ($this->manager ?? UniexporterManager::resolve())->export($this->document, $this->data, $format);

@@ -179,6 +179,11 @@ class Document
         return $this->data([])->exportToExcel();
     }
 
+    public function exportToCsv(): ExportedFile
+    {
+        return $this->data([])->exportToCsv();
+    }
+
     public function export(string $format): ExportedFile
     {
         return $this->data([])->export($format);
