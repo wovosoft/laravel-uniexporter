@@ -248,7 +248,9 @@ class OpenSpoutDriver extends AbstractDriver
             }
         }
 
-        $columnStyles = array_map(fn ($column): Style => $style->merge($column->getInlineStyle()), $columns);
+        // Body cells wrap and sit at the top, as table cells do in the PDF and DOCX output; a column's own style still wins.
+        $bodyStyle = $style->merge(Style::make()->wrap()->verticalAlign(VerticalAlign::Top));
+        $columnStyles = array_map(fn ($column): Style => $bodyStyle->merge($column->getInlineStyle()), $columns);
 
         foreach ($rows->rows() as $row) {
             $stripe = $table->getStripeColor() !== null && $row->index % 2 === 1 ? Style::make()->background($table->getStripeColor()) : null;

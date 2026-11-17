@@ -70,6 +70,25 @@ class XlsxExportTest extends TestCase
         $this->assertNotEmpty(array_filter($this->zipEntries($export->path()), fn (string $name): bool => str_starts_with($name, 'xl/media/')));
     }
 
+    public function test_table_cells_wrap_at_the_top_like_the_other_formats(): void
+    {
+        $document = Document::make()->components([
+            Table::make('rows')->columns([Column::make('name'), Column::make('code')->center()]),
+        ]);
+
+        $export = $this->export($document, ['rows' => [['name' => 'A long name that needs wrapping', 'code' => '1010(BHBFC)']]], 'xlsx');
+
+        preg_match_all('/<c r="[AB]2"[^>]* s="(\d+)"/', $this->zipEntry($export->path(), 'xl/worksheets/sheet1.xml'), $cellStyles);
+        preg_match_all('/<xf [^>]*?(?:\/>|>.*?<\/xf>)/s', explode('<cellXfs', $this->zipEntry($export->path(), 'xl/styles.xml'))[1], $formats);
+
+        $this->assertCount(2, $cellStyles[1]);
+        foreach ($cellStyles[1] as $styleId) {
+            $this->assertStringContainsString('vertical="top"', $formats[0][$styleId]);
+            $this->assertStringContainsString('wrapText="1"', $formats[0][$styleId]);
+        }
+        $this->assertStringContainsString('horizontal="center"', $formats[0][$cellStyles[1][1]], 'Column alignment still applies.');
+    }
+
     public function test_styles_are_shared_instead_of_one_per_row(): void
     {
         $document = Document::make()->components([
