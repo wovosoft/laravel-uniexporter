@@ -95,6 +95,7 @@ Columns with `total()` are summed (numeric values only) into a totals row after 
 
 - `total(fn ($sum, Data $data) => ...)` changes what the totals cell shows. Return a number to keep it numeric, or a text.
 - `totalLabel('Total', colspan: 3)` widens the label over the next columns, up to the first total.
+- The label is aligned like its column, unless `totalStyle()` sets an alignment.
 - `totalFormulas()` makes spreadsheets write numeric totals as `=SUM(...)` over the body rows, so they follow edits.
 
 ## Formulas

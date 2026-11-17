@@ -312,7 +312,7 @@ class OpenSpoutDriver extends AbstractDriver
             $cells = [];
             foreach ($rows->totalCells() as $position => $cell) {
                 $column = $columns[$position];
-                $cellStyle = $totalStyle->merge(Style::make()->align($column->getInlineStyle()?->align ?? Align::Left));
+                $cellStyle = $this->totalCellStyle($totalStyle, $table, $column, $cell !== null && $cell['label']);
                 $letter = CellHelper::getColumnLettersFromColumnIndex($position);
                 $cells[] = match (true) {
                     $cell === null                => new EmptyCell(null, $this->spoutStyle($cellStyle, $border)),

@@ -308,7 +308,7 @@ class PhpWordDriver extends AbstractDriver
                     continue;
                 }
                 $text = $cell['label'] ? $context->text($table->getTotalLabel()) : $cell['text'];
-                $cellStyle = $totalStyle->merge(Style::make()->align($columns[$position]->getInlineStyle()?->align ?? Align::Left));
+                $cellStyle = $this->totalCellStyle($totalStyle, $table, $columns[$position], $cell['label']);
                 $width = array_sum(array_map($cellWidth, range($position, $position + $cell['colspan'] - 1)));
                 $this->addCellText($wordRow->addCell($width, $this->cellStyle($cellStyle, $cell['colspan'])), $text, $cellStyle);
             }

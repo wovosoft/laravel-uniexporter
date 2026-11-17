@@ -348,7 +348,7 @@ class HtmlDriver extends AbstractDriver
                     continue;
                 }
                 $text = $cell['label'] ? $context->text($table->getTotalLabel()) : $cell['text'];
-                $cellStyle = $totalStyle->merge(Style::make()->align($columns[$position]->getInlineStyle()?->align ?? Align::Left));
+                $cellStyle = $this->totalCellStyle($totalStyle, $table, $columns[$position], $cell['label']);
                 $colspan = $cell['colspan'] > 1 ? ' colspan="'.$cell['colspan'].'"' : '';
                 $body .= '<td'.$colspan.$this->cellAttribute($this->cellCss($cellStyle, $border, $padding)).'>'.$this->escape($text).'</td>';
             }

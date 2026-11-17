@@ -107,6 +107,19 @@ abstract class AbstractDriver implements Driver
     }
 
     /**
+     * Style of a totals row cell: aligned like its column, except the label when the table's total
+     * style sets an alignment.
+     */
+    protected function totalCellStyle(Style $totalStyle, Table $table, Column $column, bool $isLabel): Style
+    {
+        $align = $isLabel && $table->getTotalStyle()->align !== null
+            ? $table->getTotalStyle()->align
+            : ($column->getInlineStyle()?->align ?? Align::Left);
+
+        return $totalStyle->merge(Style::make()->align($align));
+    }
+
+    /**
      * Style of a run relative to its paragraph: only its own named and inline props.
      */
     protected function runStyle(Run $run, RenderContext $context): Style

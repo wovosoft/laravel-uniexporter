@@ -7,6 +7,7 @@ use Wovosoft\LaravelUniexporter\Components\Native;
 use Wovosoft\LaravelUniexporter\Components\Table;
 use Wovosoft\LaravelUniexporter\Components\Text;
 use Wovosoft\LaravelUniexporter\Document;
+use Wovosoft\LaravelUniexporter\Style\Style;
 use Wovosoft\LaravelUniexporter\Tests\Fixtures\SalaryStatement;
 use Wovosoft\LaravelUniexporter\Tests\Fixtures\SampleData;
 use Wovosoft\LaravelUniexporter\Tests\TestCase;
@@ -97,5 +98,21 @@ class HtmlExportTest extends TestCase
 
         $this->assertMatchesRegularExpression('#<td colspan="2"[^>]*>Total</td><td[^>]*>5 days</td><td[^>]*>30</td>#', $html);
         $this->assertStringNotContainsString('={days}', $html, 'Formulas are for spreadsheets only.');
+    }
+
+    public function test_the_total_style_alignment_applies_to_the_label(): void
+    {
+        $document = Document::make()->components([
+            Table::make('rows')
+                ->totalLabel('Total')
+                ->totalStyle(fn (Style $style): Style => $style->merge(Style::make()->align('right')))
+                ->columns([Column::make('name'), Column::make('days')->total()]),
+        ]);
+
+        $html = (string) file_get_contents($this->export($document, ['rows' => [['name' => 'A', 'days' => 2]]], 'html')->path());
+
+        preg_match('#<td class="([^"]+)"[^>]*>Total</td>#', $html, $label);
+        $this->assertNotEmpty($label);
+        $this->assertMatchesRegularExpression('#\.'.preg_quote(explode(' ', $label[1])[0], '#').'\s*\{[^}]*text-align:\s*right#', $html);
     }
 }
