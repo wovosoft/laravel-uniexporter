@@ -37,6 +37,8 @@ Table::make('employees')
 | `money(int $decimals = 2, string $prefix = '')` | number with decimals and thousands separators |
 | `date(string $format = 'd/m/Y')` | date (DateTime, Carbon or parseable string); a real date cell in spreadsheets |
 | `total()` | sums the column into a totals row |
+| `total(fn ($sum, Data $data) => ...)` | sums the column and shows the closure's result (a number, or a text such as `'৫০ দিন'`) |
+| `formula('={days}*{rate}')` | a formula per cell in spreadsheets (see below) |
 | `emptyValue(string)` | text for empty values |
 | `headerStyle(Style)` | style of this column's header cell |
 | style methods (`center()`, `bold()`...) | style of the column's body cells |
@@ -90,6 +92,23 @@ Body cells sit at the top and wrap long text in every format. A table or column 
 ## Totals
 
 Columns with `total()` are summed (numeric values only) into a totals row after the data. The label goes in the first column without a total; set it with `totalLabel()` and style the row with `totalStyle()` (default bold on `F2F2F2`). In spreadsheets totals are numbers with the column's number format.
+
+- `total(fn ($sum, Data $data) => ...)` changes what the totals cell shows. Return a number to keep it numeric, or a text.
+- `totalLabel('Total', colspan: 3)` widens the label over the next columns, up to the first total.
+- `totalFormulas()` makes spreadsheets write numeric totals as `=SUM(...)` over the body rows, so they follow edits.
+
+## Formulas
+
+`formula()` writes a spreadsheet formula in each body cell of the column. `{key}` is the cell of the column with that key in the same row and `{row}` the row number:
+
+```php
+Column::make('payable')
+    ->formula('={days}*{rate}-{deduction}')                                   // spreadsheets
+    ->formatUsing(fn ($value, $row) => $row->days * $row->rate - $row->deduction)  // other formats
+    ->total();
+```
+
+Other formats show the column's value as usual. Only formulas set this way are written: user data starting with `=` stays text.
 
 ## Column widths per format
 

@@ -87,6 +87,35 @@ class XlsxExportTest extends TestCase
         $this->assertStringContainsString('<mergeCell ref="A1:D1"/>', $this->zipEntry($export->path(), 'xl/worksheets/sheet2.xml'));
     }
 
+    public function test_columns_can_be_formulas_and_totals_sum_formulas(): void
+    {
+        $document = Document::make()->components([
+            Table::make('rows')
+                ->totalLabel('Total', 2)
+                ->totalFormulas()
+                ->columns([
+                    Column::make('name'),
+                    Column::make('note'),
+                    Column::make('days')->total(),
+                    Column::make('rate')->total(fn (): string => 'x 400'),
+                    Column::make('amount')->formula('={days}*{rate}')->formatUsing(fn (mixed $value, array $row): int => $row['days'] * $row['rate'])->total(),
+                ]),
+        ]);
+
+        $export = $this->export($document, ['rows' => [
+            ['name' => 'A', 'note' => '', 'days' => 2, 'rate' => 400],
+            ['name' => 'B', 'note' => '', 'days' => 3, 'rate' => 400],
+        ]], 'xlsx');
+        $sheet = $this->zipEntry($export->path(), 'xl/worksheets/sheet1.xml');
+
+        $this->assertStringContainsString('<f>C2*D2</f>', $sheet);
+        $this->assertStringContainsString('<f>C3*D3</f>', $sheet);
+        $this->assertStringContainsString('<f>SUM(C2:C3)</f>', $sheet);
+        $this->assertStringContainsString('<f>SUM(E2:E3)</f>', $sheet);
+        $this->assertStringContainsString('<mergeCell ref="A4:B4"/>', $sheet);
+        $this->assertSame(['Total', '', '=SUM(C2:C3)', 'x 400', '=SUM(E2:E3)'], array_slice($this->readSheets($export->path())['Sheet1'][3], 0, 5));
+    }
+
     public function test_table_cells_wrap_at_the_top_like_the_other_formats(): void
     {
         $document = Document::make()->components([

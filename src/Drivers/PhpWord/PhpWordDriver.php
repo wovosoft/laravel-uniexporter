@@ -302,16 +302,15 @@ class PhpWordDriver extends AbstractDriver
 
         if ($table->hasTotals()) {
             $totalStyle = $style->merge($table->getTotalStyle());
-            $labelColumn = $rows->totalLabelColumn();
             $wordRow = $word->addRow(null, ['cantSplit' => true]);
-            foreach ($rows->totals() as $position => $total) {
-                $text = match (true) {
-                    $total !== null            => $columns[$position]->getFormat()->toText($total),
-                    $position === $labelColumn => $context->text($table->getTotalLabel()),
-                    default                    => '',
-                };
+            foreach ($rows->totalCells() as $position => $cell) {
+                if ($cell === null) {
+                    continue;
+                }
+                $text = $cell['label'] ? $context->text($table->getTotalLabel()) : $cell['text'];
                 $cellStyle = $totalStyle->merge(Style::make()->align($columns[$position]->getInlineStyle()?->align ?? Align::Left));
-                $this->addCellText($wordRow->addCell($cellWidth($position), $this->cellStyle($cellStyle)), $text, $cellStyle);
+                $width = array_sum(array_map($cellWidth, range($position, $position + $cell['colspan'] - 1)));
+                $this->addCellText($wordRow->addCell($width, $this->cellStyle($cellStyle, $cell['colspan'])), $text, $cellStyle);
             }
         }
 

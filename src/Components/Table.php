@@ -38,6 +38,10 @@ class Table extends Component
 
     protected string $totalLabel = 'Total';
 
+    protected int $totalLabelColspan = 1;
+
+    protected bool $totalFormulas = false;
+
     protected string $emptyText = '';
 
     protected ?Closure $rowStyler = null;
@@ -142,9 +146,24 @@ class Table extends Component
         return $this;
     }
 
-    public function totalLabel(string $label): static
+    /**
+     * The totals row label, in the first column; $colspan widens it over the next columns (up to the
+     * first total).
+     */
+    public function totalLabel(string $label, int $colspan = 1): static
     {
         $this->totalLabel = $label;
+        $this->totalLabelColspan = max(1, $colspan);
+
+        return $this;
+    }
+
+    /**
+     * Spreadsheets write numeric totals as SUM formulas over the body rows instead of values.
+     */
+    public function totalFormulas(bool $formulas = true): static
+    {
+        $this->totalFormulas = $formulas;
 
         return $this;
     }
@@ -305,6 +324,16 @@ class Table extends Component
     public function getTotalLabel(): string
     {
         return $this->totalLabel;
+    }
+
+    public function getTotalLabelColspan(): int
+    {
+        return $this->totalLabelColspan;
+    }
+
+    public function hasTotalFormulas(): bool
+    {
+        return $this->totalFormulas;
     }
 
     public function getEmptyText(): string

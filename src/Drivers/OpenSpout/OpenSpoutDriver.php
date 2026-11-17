@@ -5,11 +5,13 @@ namespace Wovosoft\LaravelUniexporter\Drivers\OpenSpout;
 use DateTimeInterface;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\EmptyCell;
+use OpenSpout\Common\Entity\Cell\FormulaCell;
 use OpenSpout\Common\Entity\Cell\ImageCell;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Cell\TextRunCell;
 use OpenSpout\Common\Entity\Comment\TextRun;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Writer\Common\Helper\CellHelper;
 use OpenSpout\Common\Entity\Style\Border as SpoutBorder;
 use OpenSpout\Common\Entity\Style\BorderName;
 use OpenSpout\Common\Entity\Style\BorderPart;
@@ -272,6 +274,8 @@ class OpenSpoutDriver extends AbstractDriver
         $bodyStyle = Style::make()->wrap()->verticalAlign(VerticalAlign::Top)->merge($style);
         $columnStyles = array_map(fn ($column): Style => $bodyStyle->merge($column->getInlineStyle()), $columns);
 
+        $firstBodyRow = $this->rowCount + 1;
+
         foreach ($rows->rows() as $row) {
             $stripe = $table->getStripeColor() !== null && $row->index % 2 === 1 ? Style::make()->background($table->getStripeColor()) : null;
             $cells = [];
@@ -279,9 +283,11 @@ class OpenSpoutDriver extends AbstractDriver
             foreach ($columns as $position => $column) {
                 $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->styleFor($position));
                 $span = $row->span($position);
-                $cells[] = $span === 0
-                    ? new EmptyCell(null, $this->spoutStyle($cellStyle, $border))
-                    : $this->valueCell($row->values[$position], $row->texts[$position], $column->getFormat(), $cellStyle, $border);
+                $cells[] = match (true) {
+                    $span === 0                      => new EmptyCell(null, $this->spoutStyle($cellStyle, $border)),
+                    $column->getFormula() !== null => new FormulaCell($this->formula($column->getFormula(), $columns, $sheetRow), null, $this->spoutStyle($cellStyle, $border)),
+                    default                          => $this->valueCell($row->values[$position], $row->texts[$position], $column->getFormat(), $cellStyle, $border),
+                };
                 if ($span > 1) {
                     $this->mergeRange($position, $sheetRow, $position, $sheetRow + $span - 1);
                 }
@@ -301,21 +307,45 @@ class OpenSpoutDriver extends AbstractDriver
 
         if ($table->hasTotals()) {
             $totalStyle = $style->merge($table->getTotalStyle());
-            $labelColumn = $rows->totalLabelColumn();
+            $lastBodyRow = $this->rowCount;
+            $sheetRow = $this->rowCount + 1;
             $cells = [];
-            foreach ($rows->totals() as $position => $total) {
+            foreach ($rows->totalCells() as $position => $cell) {
                 $column = $columns[$position];
                 $cellStyle = $totalStyle->merge(Style::make()->align($column->getInlineStyle()?->align ?? Align::Left));
+                $letter = CellHelper::getColumnLettersFromColumnIndex($position);
                 $cells[] = match (true) {
-                    $total !== null            => $this->valueCell($total, $column->getFormat()->toText($total), $column->getFormat(), $cellStyle, $border),
-                    $position === $labelColumn => new StringCell($context->text($table->getTotalLabel()), $this->spoutStyle($cellStyle, $border)),
-                    default                    => new EmptyCell(null, $this->spoutStyle($cellStyle, $border)),
+                    $cell === null                => new EmptyCell(null, $this->spoutStyle($cellStyle, $border)),
+                    $cell['label']                => new StringCell($context->text($table->getTotalLabel()), $this->spoutStyle($cellStyle, $border)),
+                    $cell['sum'] && $table->hasTotalFormulas() && $lastBodyRow >= $firstBodyRow
+                                                  => new FormulaCell("=SUM({$letter}{$firstBodyRow}:{$letter}{$lastBodyRow})", $cell['value'], $this->spoutStyle($cellStyle, $border)),
+                    default                       => $this->valueCell($cell['value'], $cell['text'], $column->getFormat(), $cellStyle, $border),
                 };
+                if ($cell !== null && $cell['colspan'] > 1) {
+                    $this->merge($position, $position + $cell['colspan'] - 1, $sheetRow);
+                }
             }
             $this->addRow($cells);
         }
 
         $this->finish($table, $context, $from);
+    }
+
+    /**
+     * Fills a column formula's placeholders: {key} becomes that column's cell in the row, {row} the row.
+     *
+     * @param list<Column> $columns
+     */
+    protected function formula(string $formula, array $columns, int $sheetRow): string
+    {
+        $cells = ['{row}' => (string) $sheetRow];
+        foreach ($columns as $position => $column) {
+            if ($column->getKey() !== '') {
+                $cells['{'.$column->getKey().'}'] = CellHelper::getColumnLettersFromColumnIndex($position).$sheetRow;
+            }
+        }
+
+        return strtr($formula, $cells);
     }
 
     protected function renderKeyValue(KeyValue $keyValue, RenderContext $context, ?Style $inherited): void

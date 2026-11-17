@@ -109,6 +109,48 @@ final class TableRows
     }
 
     /**
+     * The totals row, one entry per column position; null under the label's colspan. A cell's value
+     * is the total (number), a text from Column::total(), or null; its text is ready to display.
+     * Valid after rows() is exhausted.
+     *
+     * @return list<array{value: int|float|string|null, text: string, colspan: int, label: bool, sum: bool}|null>
+     */
+    public function totalCells(): array
+    {
+        $columns = $this->table->getColumns();
+        $labelColumn = $this->totalLabelColumn();
+        $labelSpan = 1;
+
+        if ($labelColumn !== null) {
+            while ($labelSpan < $this->table->getTotalLabelColspan()
+                && isset($columns[$labelColumn + $labelSpan])
+                && ! $columns[$labelColumn + $labelSpan]->hasTotal()) {
+                $labelSpan++;
+            }
+        }
+
+        $cells = [];
+        foreach ($columns as $position => $column) {
+            if ($labelColumn !== null && $position > $labelColumn && $position < $labelColumn + $labelSpan) {
+                $cells[] = null;
+
+                continue;
+            }
+
+            if ($column->hasTotal()) {
+                $value = $column->totalValue($this->totals[$position] ?? 0, $this->data);
+                $cells[] = ['value' => $value, 'text' => is_string($value) ? $value : $column->getFormat()->toText($value), 'colspan' => 1, 'label' => false, 'sum' => is_int($value) || is_float($value)];
+            } elseif ($position === $labelColumn) {
+                $cells[] = ['value' => null, 'text' => '', 'colspan' => $labelSpan, 'label' => true, 'sum' => false];
+            } else {
+                $cells[] = ['value' => null, 'text' => '', 'colspan' => 1, 'label' => false, 'sum' => false];
+            }
+        }
+
+        return $cells;
+    }
+
+    /**
      * Index of the column that shows the totals label: the first one before the first total column.
      */
     public function totalLabelColumn(): ?int

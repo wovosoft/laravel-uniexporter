@@ -2,7 +2,9 @@
 
 namespace Wovosoft\LaravelUniexporter\Tests\Feature;
 
+use Wovosoft\LaravelUniexporter\Components\Column;
 use Wovosoft\LaravelUniexporter\Components\Native;
+use Wovosoft\LaravelUniexporter\Components\Table;
 use Wovosoft\LaravelUniexporter\Components\Text;
 use Wovosoft\LaravelUniexporter\Document;
 use Wovosoft\LaravelUniexporter\Tests\Fixtures\SalaryStatement;
@@ -76,5 +78,24 @@ class HtmlExportTest extends TestCase
         $this->assertStringContainsString('replaced', $html);
         $this->assertStringNotContainsString('original', $html);
         $this->assertStringContainsString('<p>written natively</p>', $html);
+    }
+
+    public function test_totals_can_show_text_and_a_wide_label(): void
+    {
+        $document = Document::make()->components([
+            Table::make('rows')
+                ->totalLabel('Total', 2)
+                ->columns([
+                    Column::make('name'),
+                    Column::make('note'),
+                    Column::make('days')->total(fn (int|float $sum): string => $sum.' days'),
+                    Column::make('amount')->formula('={days}*2')->total(),
+                ]),
+        ]);
+
+        $html = (string) file_get_contents($this->export($document, ['rows' => [['name' => 'A', 'note' => '', 'days' => 2, 'amount' => 10], ['name' => 'B', 'note' => '', 'days' => 3, 'amount' => 20]]], 'html')->path());
+
+        $this->assertMatchesRegularExpression('#<td colspan="2"[^>]*>Total</td><td[^>]*>5 days</td><td[^>]*>30</td>#', $html);
+        $this->assertStringNotContainsString('={days}', $html, 'Formulas are for spreadsheets only.');
     }
 }

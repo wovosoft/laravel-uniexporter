@@ -117,4 +117,15 @@ class PdfExportTest extends TestCase
 
         $this->export($document, [], 'pdf');
     }
+
+    public function test_a_wide_totals_label_renders(): void
+    {
+        $document = Document::make()->components([
+            Table::make('rows')->totalLabel('Total', 2)->columns([Column::make('name'), Column::make('note'), Column::make('days')->total()]),
+        ]);
+
+        $path = $this->export($document, ['rows' => [['name' => 'A', 'note' => '', 'days' => 2], ['name' => 'B', 'note' => '', 'days' => 3]]], 'pdf')->path();
+
+        $this->assertStringStartsWith('%PDF', (string) file_get_contents($path, length: 4));
+    }
 }

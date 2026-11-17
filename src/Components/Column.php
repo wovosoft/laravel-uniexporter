@@ -23,6 +23,10 @@ class Column extends Component
 
     protected bool $total = false;
 
+    protected ?Closure $totalFormatter = null;
+
+    protected ?string $formula = null;
+
     protected bool $rowNumber = false;
 
     protected string $emptyValue = '';
@@ -151,11 +155,27 @@ class Column extends Component
     }
 
     /**
-     * Adds the column's sum to the table's totals row.
+     * Adds the column's sum to the table's totals row. A closure receives the sum and the data and
+     * returns what the totals cell shows: a number (formatted like the column) or a text.
+     *
+     * @param bool|Closure(int|float $sum, Data $data): (int|float|string|null) $total
      */
-    public function total(bool $total = true): static
+    public function total(bool|Closure $total = true): static
     {
-        $this->total = $total;
+        $this->total = $total !== false;
+        $this->totalFormatter = $total instanceof Closure ? $total : null;
+
+        return $this;
+    }
+
+    /**
+     * A formula for the column's cells in spreadsheets, e.g. '={days}*{rate}-{deduction}'. {key}
+     * is the cell of the column with that key in the same row, {row} the row number. Other
+     * formats show the column's value as usual.
+     */
+    public function formula(?string $formula): static
+    {
+        $this->formula = $formula;
 
         return $this;
     }
@@ -211,6 +231,19 @@ class Column extends Component
     public function hasTotal(): bool
     {
         return $this->total;
+    }
+
+    /**
+     * What the totals cell shows for a sum: the total() closure's result, or the sum.
+     */
+    public function totalValue(int|float $sum, Data $data): int|float|string|null
+    {
+        return $this->totalFormatter ? ($this->totalFormatter)($sum, $data) : $sum;
+    }
+
+    public function getFormula(): ?string
+    {
+        return $this->formula;
     }
 
     public function isRowNumber(): bool

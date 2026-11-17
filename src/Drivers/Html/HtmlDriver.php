@@ -342,16 +342,15 @@ class HtmlDriver extends AbstractDriver
 
         if ($table->hasTotals()) {
             $totalStyle = $style->merge($table->getTotalStyle());
-            $labelColumn = $rows->totalLabelColumn();
             $body .= '<tr>';
-            foreach ($rows->totals() as $position => $total) {
-                $text = match (true) {
-                    $total !== null           => $columns[$position]->getFormat()->toText($total),
-                    $position === $labelColumn => $context->text($table->getTotalLabel()),
-                    default                   => '',
-                };
+            foreach ($rows->totalCells() as $position => $cell) {
+                if ($cell === null) {
+                    continue;
+                }
+                $text = $cell['label'] ? $context->text($table->getTotalLabel()) : $cell['text'];
                 $cellStyle = $totalStyle->merge(Style::make()->align($columns[$position]->getInlineStyle()?->align ?? Align::Left));
-                $body .= '<td'.$this->cellAttribute($this->cellCss($cellStyle, $border, $padding)).'>'.$this->escape($text).'</td>';
+                $colspan = $cell['colspan'] > 1 ? ' colspan="'.$cell['colspan'].'"' : '';
+                $body .= '<td'.$colspan.$this->cellAttribute($this->cellCss($cellStyle, $border, $padding)).'>'.$this->escape($text).'</td>';
             }
             $body .= '</tr>';
         }

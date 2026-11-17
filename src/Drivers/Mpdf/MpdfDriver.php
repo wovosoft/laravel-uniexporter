@@ -135,7 +135,7 @@ class MpdfDriver extends HtmlDriver
     {
         foreach ($components as $component) {
             if ($component instanceof Table) {
-                if ($component->getSubRows() !== null) {
+                if ($component->getSubRows() !== null || ($component->hasTotals() && $component->getTotalLabelColspan() > 1)) {
                     return true;
                 }
                 foreach ($component->getHeaderRows() as $headerRow) {
