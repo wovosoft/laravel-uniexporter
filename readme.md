@@ -1,5 +1,13 @@
 # Laravel Uniexporter
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/wovosoft/laravel-uniexporter.svg?style=flat-square&logo=packagist&logoColor=white)](https://packagist.org/packages/wovosoft/laravel-uniexporter)
+[![Tests](https://img.shields.io/github/actions/workflow/status/wovosoft/laravel-uniexporter/tests.yml?branch=main&label=tests&style=flat-square&logo=githubactions&logoColor=white)](https://github.com/wovosoft/laravel-uniexporter/actions/workflows/tests.yml)
+[![Total Downloads](https://img.shields.io/packagist/dt/wovosoft/laravel-uniexporter.svg?style=flat-square)](https://packagist.org/packages/wovosoft/laravel-uniexporter/stats)
+[![PHP Version](https://img.shields.io/packagist/dependency-v/wovosoft/laravel-uniexporter/php.svg?style=flat-square&logo=php&logoColor=white)](https://packagist.org/packages/wovosoft/laravel-uniexporter)
+[![Laravel](https://img.shields.io/badge/Laravel-12.x%20%7C%2013.x-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
+[![License](https://img.shields.io/packagist/l/wovosoft/laravel-uniexporter.svg?style=flat-square)](license.md)
+[![GitHub Stars](https://img.shields.io/github/stars/wovosoft/laravel-uniexporter.svg?style=flat-square&logo=github)](https://github.com/wovosoft/laravel-uniexporter/stargazers)
+
 Describe a document once as a schema of components, then export it to PDF, DOCX, XLSX, HTML or CSV. Each format is a driver, so you can replace one or add your own.
 
 | Format | Default driver | Library (install it yourself) |
@@ -227,6 +235,19 @@ When the package is developed inside an application (`packages/wovosoft/laravel-
 ```bash
 php vendor/bin/phpunit -c packages/wovosoft/laravel-uniexporter/phpunit.xml
 ```
+
+## Changelog
+
+See [changelog.md](changelog.md) for what has changed in each release.
+
+## Security
+
+If you find a security issue, please email [wovosoft@gmail.com](mailto:wovosoft@gmail.com) instead of opening a public issue.
+
+## Credits
+
+- [Narayan Adhikary](https://github.com/wovosoft)
+- [All contributors](https://github.com/wovosoft/laravel-uniexporter/graphs/contributors)
 
 ## License
 
