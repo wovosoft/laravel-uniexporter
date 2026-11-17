@@ -33,6 +33,8 @@ class Column extends Component
 
     protected bool $fromSubRow = false;
 
+    protected ?Closure $styler = null;
+
     public function __construct(protected string $key = '')
     {
         $this->format = ValueFormat::text();
@@ -74,6 +76,24 @@ class Column extends Component
         $this->fromSubRow = $fromSubRow;
 
         return $this;
+    }
+
+    /**
+     * Conditional style per cell, e.g. a long tenure in red. Receives the value (after formatUsing())
+     * and the row (the sub-row item for fromSubRow() columns); returns a style or null.
+     *
+     * @param Closure(mixed $value, mixed $row): ?Style $styler
+     */
+    public function styleUsing(Closure $styler): static
+    {
+        $this->styler = $styler;
+
+        return $this;
+    }
+
+    public function cellStyleFor(mixed $value, mixed $row): ?Style
+    {
+        return $this->styler ? ($this->styler)($value, $row) : null;
     }
 
     public function isFromSubRow(): bool

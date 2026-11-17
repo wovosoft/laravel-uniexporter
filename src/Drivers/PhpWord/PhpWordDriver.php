@@ -280,7 +280,7 @@ class PhpWordDriver extends AbstractDriver
             $stripe = $table->getStripeColor() !== null && $row->index % 2 === 1 ? Style::make()->background($table->getStripeColor()) : null;
             $wordRow = $word->addRow(null, ['cantSplit' => true]);
             foreach ($row->texts as $position => $text) {
-                $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->style);
+                $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->styleFor($position));
                 $span = $row->span($position);
                 $wordCell = $wordRow->addCell($cellWidth($position), $this->cellStyle($cellStyle, vMerge: match (true) {
                     $span === 0 => 'continue',

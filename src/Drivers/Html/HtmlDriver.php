@@ -329,7 +329,7 @@ class HtmlDriver extends AbstractDriver
                 if (($span = $row->span($position)) === 0) {
                     continue;
                 }
-                $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->style);
+                $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->styleFor($position));
                 $body .= '<td'.($span > 1 ? ' rowspan="'.$span.'"' : '').$this->cellAttribute($this->cellCss($cellStyle, $border, $padding)).'>'.$this->escape($text).'</td>';
             }
             $body .= '</tr>';

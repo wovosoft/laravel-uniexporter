@@ -277,7 +277,7 @@ class OpenSpoutDriver extends AbstractDriver
             $cells = [];
             $sheetRow = $this->rowCount + 1;
             foreach ($columns as $position => $column) {
-                $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->style);
+                $cellStyle = $columnStyles[$position]->merge($stripe)->merge($row->styleFor($position));
                 $span = $row->span($position);
                 $cells[] = $span === 0
                     ? new EmptyCell(null, $this->spoutStyle($cellStyle, $border))

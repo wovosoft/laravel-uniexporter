@@ -37,6 +37,26 @@ class PageAndTableLayoutTest extends TestCase
         $this->assertStringContainsString('Letterhead line', $this->zipEntry($this->export($document, [], 'docx')->path(), 'word/header1.xml'));
     }
 
+    public function test_cells_can_be_styled_by_their_value(): void
+    {
+        $document = Document::make()->components([
+            Table::make('rows')->columns([
+                Column::make('name'),
+                Column::make('years')->number()->styleUsing(fn (int $years, array $row): ?Style => $years >= 3 ? Style::make()->color('FF0000') : null),
+            ]),
+        ]);
+        $data = ['rows' => [['name' => 'Long', 'years' => 4], ['name' => 'Short', 'years' => 1]]];
+
+        $html = $this->export($document, $data, 'html')->contents();
+        preg_match_all('/<td class="(c\d+)">4<\/td>/', $html, $long);
+        preg_match_all('/<td class="(c\d+)">1<\/td>/', $html, $short);
+        $this->assertMatchesRegularExpression('/\.'.$long[1][0].'\{[^}]*color: #FF0000/', $html);
+        $this->assertDoesNotMatchRegularExpression('/\.'.$short[1][0].'\{[^}]*color: #FF0000/', $html);
+
+        $this->assertStringContainsString('FFFF0000', $this->zipEntry($this->export($document, $data, 'xlsx')->path(), 'xl/styles.xml'));
+        $this->assertStringContainsString('w:color w:val="FF0000"', $this->zipEntry($this->export($document, $data, 'docx')->path(), 'word/document.xml'));
+    }
+
     public function test_line_height_reaches_html_and_word(): void
     {
         $document = Document::make()->components([Text::make('tight lines')->lineHeight(1.15)]);

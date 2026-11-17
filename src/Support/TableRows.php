@@ -41,6 +41,7 @@ final class TableRows
                 $values = [];
                 $texts = [];
                 $spans = [];
+                $cellStyles = [];
 
                 foreach ($columns as $position => $column) {
                     $fromSubRow = $subRowSource !== null && $column->isFromSubRow();
@@ -61,6 +62,10 @@ final class TableRows
                     $values[] = $value;
                     $texts[] = $text === '' ? $column->getEmptyValue() : $text;
 
+                    if (($cellStyle = $column->cellStyleFor($value, $fromSubRow ? $subItem : $source)) !== null) {
+                        $cellStyles[$position] = $cellStyle;
+                    }
+
                     if (! $fromSubRow && $span > 1) {
                         $spans[$position] = $span;
                     }
@@ -70,7 +75,7 @@ final class TableRows
                     }
                 }
 
-                yield new TableRow($index, $source, $values, $texts, $style, $spans, $subRow);
+                yield new TableRow($index, $source, $values, $texts, $style, $spans, $subRow, $cellStyles);
             }
 
             $index++;
