@@ -70,7 +70,7 @@ class Letterhead
     {
         return Columns::make([
             [Image::make(public_path('logo.png'))->width(13)],
-            Group::make([Text::make('Bangladesh Krishi Bank')->bold()->color('035203'), Text::make('Head Office, Dhaka')])->center(),
+            Group::make([Text::make('Acme Bank Ltd.')->bold()->color('035203'), Text::make('Head Office')])->center(),
         ])->widths([1, 4])->hiddenOn('xlsx');
     }
 }

@@ -198,8 +198,17 @@ Uniexporter::extend('csv', CsvDriver::class);
 
 ## Testing
 
-The tests run against the host application's `vendor/`:
+```bash
+composer update
+composer test
+```
+
+When the package is developed inside an application (`packages/wovosoft/laravel-uniexporter`), the tests can also run against the application's `vendor/`, from its root:
 
 ```bash
 php vendor/bin/phpunit -c packages/wovosoft/laravel-uniexporter/phpunit.xml
 ```
+
+## License
+
+MIT, see [license.md](license.md).

@@ -2,13 +2,20 @@
 
 ## The package's tests
 
-The tests run against the host application's `vendor/` (the bootstrap registers the package namespaces), from the application root:
+In a checkout of the package:
+
+```bash
+composer update
+composer test          # or vendor/bin/phpunit
+```
+
+When the package lives inside an application (`packages/wovosoft/laravel-uniexporter`, installed through a path repository), the tests can run against the application's `vendor/` instead, from the application root:
 
 ```bash
 php vendor/bin/phpunit -c packages/wovosoft/laravel-uniexporter/phpunit.xml
 ```
 
-A standalone checkout can point `UNIEXPORTER_AUTOLOAD` at its own `vendor/autoload.php`. PDF text checks use `pdftotext` (poppler-utils) when installed and are skipped otherwise.
+The bootstrap uses the package's own `vendor/` when it exists, otherwise the application's; `UNIEXPORTER_AUTOLOAD` points it at any other `autoload.php`. GitHub Actions runs the tests on PHP 8.4 and 8.5 for every push and pull request. PDF text checks use `pdftotext` (poppler-utils) when installed and are skipped otherwise.
 
 | Test | Covers |
 |------|--------|

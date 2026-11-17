@@ -56,7 +56,7 @@ A run takes the style methods; it inherits the paragraph's style. Default style:
 ## Link
 
 ```php
-Link::make('Open the portal', 'https://hrms.example.com/{path}');
+Link::make('Open the portal', 'https://portal.example.com/{path}');
 ```
 
 ## Image

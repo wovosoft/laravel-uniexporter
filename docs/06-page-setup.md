@@ -56,7 +56,7 @@ This is the base of every component's style. In PDFs the family must be register
 Three slots, left, center and right, repeated on every page:
 
 ```php
-->header(left: 'Bangladesh Krishi Bank', right: '{date}')
+->header(left: 'Acme Bank Ltd.', right: '{date}')
 ->footer(center: 'Page {page} of {pages}', style: Style::make()->size(9)->color('000000'))
 ->firstPageHeader()                         // first page: no header
 ->firstPageFooter(center: 'Confidential')   // first page: a different footer
@@ -79,7 +79,7 @@ A letterhead, a title line or anything else built from components, repeated on e
 
 ```php
 ->headerContent([
-    Columns::make([Image::make(public_path('logo.png'))->width(13), Text::make('Bangladesh Krishi Bank')->bold()])->widths([1, 4]),
+    Columns::make([Image::make(public_path('logo.png'))->width(13), Text::make('Acme Bank Ltd.')->bold()])->widths([1, 4]),
     Text::make('Subject: {subject}')->underline(),
 ])
 ->footerContent([Text::make('This is a system generated document.')->size(8)->center()])
