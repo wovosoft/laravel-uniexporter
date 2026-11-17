@@ -79,6 +79,23 @@ mPDF needs every font it uses registered, with OpenType layout enabled for corre
 
 The key is the font family in lowercase without spaces: `->font('SolaimanLipi')` in a document uses the `solaimanlipi` entry. DOCX and XLSX files do not embed fonts; readers need the fonts installed. The HTML page asks the browser for the family name and falls back to `sans-serif`.
 
+## AI agent skill
+
+The package ships a skill and a guideline for AI coding agents (Claude Code, Copilot, Codex, Junie, Cursor...) in `resources/boost/`:
+
+- `resources/boost/skills/laravel-uniexporter/SKILL.md`: how to build, serve, migrate and test exports with this package.
+- `resources/boost/guidelines/core.blade.php`: a short rule added to the agents' guidelines, pointing them to the skill.
+
+**With [Laravel Boost](https://github.com/laravel/boost)**, nothing needs publishing: Boost discovers both in every direct dependency. Run `php artisan boost:install` (or `boost:update`, which asks about newly found packages) and select `wovosoft/laravel-uniexporter`, or add it to `packages` in `boost.json` and run `php artisan boost:update`. Boost writes the skill for every configured agent and keeps it in sync on each update.
+
+**Without Boost**, publish the skill into the project:
+
+```bash
+php artisan vendor:publish --tag=uniexporter.skills     # .claude/skills/laravel-uniexporter
+```
+
+Project-specific conventions (your base report classes, fonts, routes) belong in a separate project skill, for example `.ai/skills/<project>-exports/SKILL.md` with Boost; a project skill named `laravel-uniexporter` would replace the package's.
+
 ## A first export
 
 ```php

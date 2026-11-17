@@ -11,6 +11,7 @@ All notable changes to `laravel-uniexporter` are documented in this file.
 - `Table::column()` and `Table::headerRow()`, `Columns::block()`, `Text::run()`, and `headerContent()`/`footerContent()` closures.
 - `Uniexporter::document()`.
 - `Concerns\ExportsByFormat`: one controller serves every format of a document from an `export/{format}` route.
+- An AI agent skill and guideline in `resources/boost/`, discovered by Laravel Boost, or published with `vendor:publish --tag=uniexporter.skills`.
 
 ### Changed
 - `Document` has public `table()`, `text()`, `heading()`... methods; subclasses can no longer declare methods with these names.

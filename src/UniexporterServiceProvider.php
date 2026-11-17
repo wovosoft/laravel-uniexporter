@@ -26,6 +26,11 @@ class UniexporterServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/uniexporter.php' => config_path('uniexporter.php'),
             ], 'uniexporter.config');
+
+            // The AI agent skill, for projects without Laravel Boost (Boost discovers resources/boost itself).
+            $this->publishes([
+                __DIR__.'/../resources/boost/skills/laravel-uniexporter' => base_path('.claude/skills/laravel-uniexporter'),
+            ], 'uniexporter.skills');
         }
     }
 }

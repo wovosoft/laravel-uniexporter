@@ -21,6 +21,8 @@ composer require wovosoft/laravel-uniexporter
 php artisan vendor:publish --tag=uniexporter.config
 ```
 
+The package ships a skill for AI coding agents. Laravel Boost picks it up (`php artisan boost:update`, select the package); without Boost, `php artisan vendor:publish --tag=uniexporter.skills`. See [AI agent skill](docs/01-getting-started.md#ai-agent-skill).
+
 ## A document
 
 Extend `Document` and describe the page setup, named styles and components. Strings can use `{placeholders}`, which are read from the data with dot notation.
