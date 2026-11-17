@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Bumps the commit-pinned actions in .github/workflows (and their version comments).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Keeps the composer.json constraints current and reports vulnerable dependencies.
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: weekly
+    versioning-strategy: widen

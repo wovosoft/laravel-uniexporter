@@ -242,7 +242,7 @@ See [changelog.md](changelog.md) for what has changed in each release.
 
 ## Security
 
-If you find a security issue, please email [wovosoft@gmail.com](mailto:wovosoft@gmail.com) instead of opening a public issue.
+If you find a security issue, please report it privately as described in [SECURITY.md](SECURITY.md) instead of opening a public issue.
 
 ## Credits
 
