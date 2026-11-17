@@ -128,4 +128,27 @@ class PdfExportTest extends TestCase
 
         $this->assertStringStartsWith('%PDF', (string) file_get_contents($path, length: 4));
     }
+
+    public function test_the_empty_text_row_renders_under_a_header(): void
+    {
+        $document = Document::make()->components([
+            Table::make('rows')->emptyText('No records found.')->columns([Column::make('name'), Column::make('days')]),
+        ]);
+
+        $errors = [];
+        set_error_handler(function (int $level, string $message) use (&$errors): bool {
+            $errors[] = $message;
+
+            return true;
+        });
+
+        try {
+            $path = $this->export($document, ['rows' => []], 'pdf')->path();
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame([], $errors);
+        $this->assertStringStartsWith('%PDF', (string) file_get_contents($path, length: 4));
+    }
 }
