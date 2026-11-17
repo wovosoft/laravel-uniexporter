@@ -27,7 +27,7 @@ $sections = [
     'Content methods'         => [U\Components\Concerns\BuildsContent::class, 'On `Document` and `Group`. Each appends a component and returns the container; the closure receives the new component.'],
     'PendingExport'           => [U\PendingExport::class, 'Returned by `$document->data($data)`.'],
     'ExportedFile'            => [U\ExportedFile::class, 'A rendered temporary file. `Responsable` (download).'],
-    'ExportsByFormat (trait)' => [U\Concerns\ExportsByFormat::class, 'The using class implements `document($request, string $format): PendingExport`.'],
+    'ExportsByFormat (trait)' => [U\Concerns\ExportsByFormat::class, 'The using class implements `document($request, string $format): PendingExport` and calls `exportAs()` from its action; the per-format methods are protected (not routable).'],
     'Settings'                => [U\Settings::class, 'Page setup, in `Document::settings()`, `configure()` or chained on the document. Lengths in millimetres.'],
     'Component (every component)' => [U\Components\Component::class, 'Plus the style methods below.'],
     'Style methods (every component, Run, Style)' => [U\Components\Concerns\HasStyle::class, 'Applied in order: default style, named style, inline style; children of a Group inherit text properties.'],
@@ -71,7 +71,7 @@ $signature = static function (ReflectionMethod $method) use ($typeName): string 
             $default = $parameter->isDefaultValueConstant()
                 ? preg_replace('/^.*\\\\/', '', (string) $parameter->getDefaultValueConstantName())
                 : var_export($parameter->getDefaultValue(), true);
-            $default = str_replace(["array (\n)", 'NULL', 'false', 'true', "\n"], ['[]', 'null', 'false', 'true', ''], (string) $default);
+            $default = str_replace(["array (\n)", 'NULL', "\n"], ['[]', 'null', ''], (string) $default);
             $text .= ' = '.$default;
         }
 
@@ -131,7 +131,9 @@ foreach ($sections as $title => [$class, $intro]) {
         }
     }
 
-    foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+    $visibility = $class === U\Concerns\ExportsByFormat::class ? ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_PROTECTED : ReflectionMethod::IS_PUBLIC;
+
+    foreach ($reflection->getMethods($visibility) as $method) {
         $ownTrait = $reflection->isTrait();
 
         if ($method->getDeclaringClass()->getName() !== $class && ! $ownTrait) {

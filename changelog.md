@@ -2,7 +2,17 @@
 
 All notable changes to `laravel-uniexporter` are documented in this file.
 
-## 2.0.0 - 2026-11-18
+## 2.0.1 - 2026-11-18
+
+### Security
+- Link URLs (`Link`, `Run::link()`) only become links for `http`, `https`, `mailto`, `tel` and relative URLs, in every format. Other schemes, such as a `javascript:` URL coming from data, render as plain text; HTML exports served inline could otherwise run script on the application's origin. New `RenderContext::url()`.
+
+### Fixed
+- `ExportsByFormat`: formats missing from the class's `FORMATS` are refused (a 404 in Laravel) even when the route has no `whereIn()`; unknown formats are a 404 instead of a 500.
+- `ExportsByFormat`: `pdf()`, `html()`, `excel()`, `docx()` and `csv()` are protected, so they can't be routed around the controller's form request.
+- `ExportsByFormat`: formats registered with `Uniexporter::extend()` can be served; `document()` receives `xlsx` when `xlsx` was requested; new `exportManager()` hook.
+- `UniexporterManager::extend()` has its docblock again.
+
 
 ### Upgrading from 1.x
 - `Document` now has public content methods (`table()`, `text()`, `heading()`, `columns()`, `group()`, `list()`, `image()`, `link()`, `spacer()`, `divider()`, `pageBreak()`, `sheet()`, `nativeContent()`, `keyValue()`, `add()`, `each()`, `when()`, `unless()`, `with()`, `withData()`). A subclass that declares a method with one of these names fails with a fatal error; rename such helpers (for example `table()` to `reportTable()`).

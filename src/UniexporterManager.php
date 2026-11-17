@@ -43,11 +43,6 @@ class UniexporterManager
     }
 
     /**
-     * Registers or replaces the driver for a format.
-     *
-     * @param class-string<Driver>|Closure(array<string, mixed> $options, self $manager): Driver $driver
-     */
-    /**
      * A new inline document for the chainable API: Uniexporter::document()->heading('...')->table(...)->exportToPdf().
      */
     public function document(): Document
@@ -55,6 +50,11 @@ class UniexporterManager
         return new Document();
     }
 
+    /**
+     * Registers or replaces the driver for a format.
+     *
+     * @param class-string<Driver>|Closure(array<string, mixed> $options, self $manager): Driver $driver
+     */
     public function extend(string $format, string|Closure $driver): static
     {
         $this->formats[$format] = $driver;

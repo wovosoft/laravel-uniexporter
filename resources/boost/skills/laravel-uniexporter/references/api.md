@@ -74,11 +74,13 @@ A rendered temporary file. `Responsable` (download).
 
 ## ExportsByFormat (trait)
 
-The using class implements `document($request, string $format): PendingExport`.
+The using class implements `document($request, string $format): PendingExport` and calls `exportAs()` from its action; the per-format methods are protected (not routable).
 
+- `exportAs(Request $request, string $format)`: Exports in `$format`: pdf, html, excel (or xlsx), docx, csv, or any format registered with Uniexporter::extend(). When the class declares a FORMATS constant, other formats are a 404 even if the route forgot its whereIn().
+- `exportManager()`: The manager that renders the exports: the application's (the container's) by default.
 - `pdf(Request $request)`
 - `html(Request $request)`
-- `excel(Request $request)`
+- `excel(Request $request, string $format = 'excel')`
 - `docx(Request $request)`
 - `csv(Request $request)`
 

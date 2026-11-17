@@ -206,9 +206,9 @@ Route::get('employees/export/{format}', EmployeesExport::class)
 route('employees.export', ['format' => 'pdf', 'office_id' => 5]);
 ```
 
-- `exportAs()` calls the public `pdf()`, `html()`, `excel()` (also `xlsx`), `docx()` or `csv()` method, which export the document: PDF and HTML open in the browser (`inline()`), the others download.
-- `document()` is not declared abstract, so it can take your form request. `$format` is the requested format, for exports whose data differs per format (for example a paged PDF and a full spreadsheet).
-- An unknown format throws `UnknownFormatException`; the route's `whereIn()` keeps such requests from reaching the controller.
+- `exportAs()` calls the protected `pdf()`, `html()`, `excel()` (also `xlsx`), `docx()` or `csv()` method, which export the document: PDF and HTML open in the browser (`inline()`), the others download. They are protected so they can't be routed directly, around your form request. Any other format registered with `Uniexporter::extend()` downloads too.
+- `document()` is not declared abstract, so it can take your form request. `$format` is the format as requested (`excel` or `xlsx`, `pdf`...), for exports whose data differs per format (for example a paged PDF and a full spreadsheet).
+- Formats missing from the class's `FORMATS` are refused even if a route forgets `whereIn()`: a 404 in Laravel (`NotFoundHttpException`), an `UnknownFormatException` elsewhere. Override `exportManager()` to render with a manager other than the application's.
 
 ### Octane and queues
 

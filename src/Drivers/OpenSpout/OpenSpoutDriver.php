@@ -188,8 +188,9 @@ class OpenSpoutDriver extends AbstractDriver
 
         if (count($runs) === 1 && $runs[0]->getInlineStyle() === null && $runs[0]->getStyleName() === null) {
             $value = $context->text($runs[0]->getText());
-            $cell = $runs[0]->getUrl() !== null
-                ? Cell::fromValue($value, $this->spoutStyle($style), null, $context->text($runs[0]->getUrl()))
+            $url = $context->url($runs[0]->getUrl());
+            $cell = $url !== null
+                ? Cell::fromValue($value, $this->spoutStyle($style), null, $url)
                 : new StringCell($value, $this->spoutStyle($style));
         } else {
             $textRuns = array_map(function ($run) use ($style, $context): TextRun {

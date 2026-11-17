@@ -231,9 +231,10 @@ class PhpWordDriver extends AbstractDriver
         foreach ($text->getRuns() as $run) {
             $font = $this->fontStyle($style->merge($this->runStyle($run, $context)));
             $content = $context->text($run->getText());
+            $url = $context->url($run->getUrl());
 
-            $run->getUrl() !== null
-                ? $paragraph->addLink($context->text($run->getUrl()), $content, $font)
+            $url !== null
+                ? $paragraph->addLink($url, $content, $font)
                 : $this->addLines($paragraph, $content, $font);
         }
 

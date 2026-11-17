@@ -544,8 +544,10 @@ class HtmlDriver extends AbstractDriver
         $css = $this->textCss($this->runStyle($run, $context));
         $html = $css === '' ? $text : '<span style="'.$css.'">'.$text.'</span>';
 
-        if ($run->getUrl() !== null) {
-            $html = '<a href="'.$this->escape($context->text($run->getUrl())).'">'.$html.'</a>';
+        $url = $context->url($run->getUrl());
+
+        if ($url !== null) {
+            $html = '<a href="'.$this->escape($url).'">'.$html.'</a>';
         }
 
         return $html;

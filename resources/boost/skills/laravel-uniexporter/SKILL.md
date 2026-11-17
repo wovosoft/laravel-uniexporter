@@ -78,7 +78,7 @@ class SalariesExport
 Route::get('salaries/export/{format}', SalariesExport::class)->whereIn('format', SalariesExport::FORMATS)->name('salaries.export');
 ```
 
-Don't make one class or route per format. Responses are temporary files (`BinaryFileResponse`), Octane-safe; never write to PHP output. With Wayfinder, link with `salaries.export.url({format: 'pdf'}, {query: filters})` (named import: `exportMethod`).
+Formats missing from `FORMATS` are a 404 even without `whereIn()`; the per-format methods are protected, so route the class, not `pdf()`. Formats added with `Uniexporter::extend()` download too. Don't make one class or route per format. Responses are temporary files (`BinaryFileResponse`), Octane-safe; never write to PHP output. With Wayfinder, link with `salaries.export.url({format: 'pdf'}, {query: filters})` (named import: `exportMethod`).
 
 ## Per-format adjustments
 
@@ -93,6 +93,7 @@ Don't make one class or route per format. Responses are temporary files (`Binary
 - **mPDF needs every font registered** in `config/uniexporter.php` (`drivers.pdf.font_data`, lowercase family without spaces, `useOTL => 0xFF` for shaped scripts such as Bengali). Missing glyphs (e.g. `∑`) render as boxes.
 - **Spreadsheets ignore `PageBreak`**; `Sheet::make('Name')` starts a worksheet. "N rows per printed page" + one full sheet: per-page tables `hiddenOn('xlsx', 'csv')` and one full table `visibleOn('xlsx', 'csv')`.
 - **Spans**: `HeaderCell::make('x')->rowspan(2)` reaches into the label row (that column's label is dropped), `->colspan(n)` groups columns; `headerRows()` aren't adjusted for hidden columns. One cell spanning many rows: `->subRows('items')` with per-item columns `->fromSubRow()`.
+- **Link URLs are filtered**: only `http`, `https`, `mailto`, `tel` and relative URLs become links (in every format); `javascript:` and other schemes render as plain text, so data can't inject script into an HTML export.
 - **Empty data**: set `emptyText()`, and give sectioned documents a title and a "No records found." line instead of a blank file.
 
 ## Testing and checking

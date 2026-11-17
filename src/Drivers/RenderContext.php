@@ -76,6 +76,31 @@ final class RenderContext
         return $this->data->interpolate($template, $extra);
     }
 
+    /**
+     * Fills a link URL's placeholders and returns it only when it is safe to link to: http, https,
+     * mailto or tel, or a relative URL. Anything else (javascript:, data:, vbscript:...) returns null,
+     * and the driver renders the text without a link, so data can't smuggle script into an export.
+     */
+    public function url(?string $template): ?string
+    {
+        if ($template === null) {
+            return null;
+        }
+
+        $url = trim($this->text($template));
+
+        if ($url === '') {
+            return null;
+        }
+
+        // Browsers ignore control characters and whitespace inside a scheme (e.g. "java\tscript:").
+        $scheme = preg_match('/^([^:\/?#]+):/', (string) preg_replace('/[\x00-\x20]+/', '', $url), $matches) === 1
+            ? strtolower($matches[1])
+            : null;
+
+        return $scheme === null || in_array($scheme, ['http', 'https', 'mailto', 'tel'], true) ? $url : null;
+    }
+
     public function option(string $key, mixed $default = null): mixed
     {
         return data_get($this->driverOptions, $key, $default);
